@@ -1,0 +1,36 @@
+# LaTeX 编译产物
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+
+# Python 缓存和本地环境
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# MATLAB 临时文件
+*.asv
+*.m~
+
+# 系统和编辑器文件
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+~$*
+
+# 临时导出文件
+*.tmp
+*.bak
