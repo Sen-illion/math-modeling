@@ -12,7 +12,11 @@
 
 ## 图表和交叉引用
 
-图片放入 `figures/`，文件名使用英文、数字和下划线；不要使用中文文件名。每张图表都要有 `caption` 和唯一的 `label`，正文使用 `\cref{fig:xxx}` 或 `\cref{tab:xxx}` 引用。
+最终进入论文的图片放入 `paper/assets/figures/`，表格源文件放入 `paper/assets/tables/`，文件名使用英文、数字和下划线；不要使用中文文件名。每张图表都要有 `caption` 和唯一的 `label`，正文使用 `\cref{fig:xxx}` 或 `\cref{tab:xxx}` 引用。`paper/figures/` 仅作为 LaTeX 编译资源目录，定稿前应复制经过核验的版本。
+
+## 参考资料
+
+参考论文、报告和数据源说明放入 `paper/assets/references/`；阅读摘要、出处、可引用结论和适用问题放入 `paper/assets/literature_notes/`。不要只把网页链接散落在聊天记录中。
 
 ## 结果来源
 
@@ -20,4 +24,4 @@
 
 ## 并行协作
 
-Q1、Q2、Q3 可以分别编辑各自的章节和结果目录，但公共符号、单位、数据口径和最终 `main.tex` 整合必须统一复核。
+Q1、Q2、Q3 可以分别编辑各自的章节和结果目录，但公共符号、单位、数据口径和最终 `main.tex` 整合必须统一复核。任何影响方法或结果的修改必须提交并推送 GitHub 后，才能交给论文作者或 Codex 使用。

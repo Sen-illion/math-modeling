@@ -3,12 +3,17 @@
 ## 仓库与分工
 
 - `main` 分支为稳定版本，不直接提交。
+- 任何方法、模型、假设、目标函数、约束、参数、数据口径或评价指标的修改，都必须先 `git pull --rebase`，完成修改和基本验证后立即提交并推送到 GitHub；未推送成功不得宣称“已完成”或通知下游继续工作。
+- 方法类提交使用清晰的提交信息，例如 `method(Q1): revise objective and constraints`；推送后在协作群中同步提交 SHA、修改路径和影响的问题。
+- Codex 开始生成代码、运行实验或写论文前，必须先 `git pull --rebase`，检查当前分支和最新提交，并以仓库中的最新方法文件为准；不得依据聊天中未提交的旧方案继续工作。
+- 若 `git push` 失败、发生冲突或本地分支落后，必须明确报告“尚未同步”，先解决同步问题，不得覆盖队友改动。
 - Q1、Q2、Q3 使用独立分支和独立目录。
 - Q1 主要负责 `code/Q1/`、`results/Q1/`、`paper/sections/q1.tex`。
 - Q2 主要负责 `code/Q2/`、`results/Q2/`、`paper/sections/q2.tex`。
 - Q3 主要负责 `code/Q3/`、`results/Q3/`、`paper/sections/q3.tex`。
 - `AGENTS.md`、`paper/main.tex`、`paper/common_setup.tex`、公共符号表和最终结论属于共享文件，修改前应通知队友并经过复核。
 - 每次提交只完成一个清晰任务，并在提交信息中说明内容。
+- 普通文字润色、临时探索和个人草稿可以不立即推送，但一旦影响方法、结果、图表、论文数字或下游写作，必须按上述同步规则提交并推送。
 
 ## 数学建模工作流
 
@@ -26,6 +31,9 @@
 - 正文不设目录，正文不超过 30 页；附录列出支撑材料和完整可运行代码。
 - Q1、Q2、Q3 分别写入 `paper/sections/q1.tex`、`q2.tex`、`q3.tex`。
 - 图片放入 `paper/figures/`，文件名使用英文、数字和下划线。
+- 所有供论文作者使用的素材统一放在 `paper/assets/`：图表放 `paper/assets/figures/`，表格源文件放 `paper/assets/tables/`，参考论文和公开资料放 `paper/assets/references/`，阅读摘要、出处和使用建议放 `paper/assets/literature_notes/`。不要把论文素材散落在个人桌面或 Qx 代码目录。
+- `paper/assets/` 是论文素材的协作入口；Codex 写作前必须检查其中是否有新增或更新文件，并优先使用已核验的素材。
+- 论文正文引用的最终数字仍以 `results/Qx/` 中的验证结果为准；`paper/assets/` 中的图表和资料必须标注来源、用途和对应问题。
 - 论文数字必须来自已验证的结果文件；冻结数字更新时必须说明原因并重新检查受影响内容。
 - 三人可以在 Overleaf 实时协作，但不要同时修改同一个 `.tex` 文件。
 - 默认只修改本地同步副本；执行同步或推送前先检查 `git diff`。
