@@ -1,7 +1,8 @@
 {
   "interaction_mode": "learning",
   "rigor_profile": "lean",
-  "questions": ["Q1", "Q2", "Q3"],
+  "questions": [],
+  "question_id_rule": "Q1..Qn according to the actual contest problem",
   "paper_source": "paper/",
   "overleaf_entry_electronic": "paper/main.tex",
   "overleaf_entry_print": "paper/main_print.tex"

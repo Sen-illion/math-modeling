@@ -5,7 +5,7 @@
 1. 在 `sections/problem_restatement.tex` 中重述题目；
 2. 在 `sections/assumptions_symbols.tex` 中统一假设、变量和单位；
 3. 在 `sections/data_preprocessing.tex` 中记录数据处理；
-4. 分别填写 `q1.tex`、`q2.tex`、`q3.tex`；
+4. 按实际问题数填写 `qx.tex`，并在 `sections/questions.tex` 中维护顺序；
 5. 在 `overall_analysis.tex` 中比较三问结果；
 6. 在 `conclusion.tex` 中逐问给出结论；
 7. 最后填写参考文献、AI 工具使用声明和附录文件列表。
@@ -24,4 +24,4 @@
 
 ## 并行协作
 
-Q1、Q2、Q3 可以分别编辑各自的章节和结果目录，但公共符号、单位、数据口径和最终 `main.tex` 整合必须统一复核。任何影响方法或结果的修改必须提交并推送 GitHub 后，才能交给论文作者或 Codex 使用。
+Q1 到 Qn 可以分别编辑各自的章节和结果目录，但公共符号、单位、数据口径和最终 `main.tex` 整合必须统一复核。任何影响方法或结果的修改必须提交并推送 GitHub 后，才能交给论文作者或 Codex 使用。

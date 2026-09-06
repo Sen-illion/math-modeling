@@ -7,14 +7,14 @@
 - `figures/`：可直接用于论文的 PNG、PDF、SVG 图；文件名使用英文、数字和下划线。
 - `tables/`：论文表格的 CSV、XLSX、LaTeX 片段或生成脚本。
 - `references/`：参考论文、报告、数据源说明和 BibTeX 文件。每份资料应有可追溯来源。
-- `literature_notes/`：阅读摘要、方法对照、引用位置建议和与 Q1/Q2/Q3 的对应关系。
+- `literature_notes/`：阅读摘要、方法对照、引用位置建议和与 Q1 到 Qn 的对应关系。
 
 ## 文件命名建议
 
 ```text
 Q1_data_distribution_v1.png
 Q2_baseline_comparison.csv
-Q3_robustness_reference.pdf
+Qn_robustness_reference.pdf
 paper_references.bib
 ```
 

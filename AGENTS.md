@@ -7,10 +7,8 @@
 - 方法类提交使用清晰的提交信息，例如 `method(Q1): revise objective and constraints`；推送后在协作群中同步提交 SHA、修改路径和影响的问题。
 - Codex 开始生成代码、运行实验或写论文前，必须先 `git pull --rebase`，检查当前分支和最新提交，并以仓库中的最新方法文件为准；不得依据聊天中未提交的旧方案继续工作。
 - 若 `git push` 失败、发生冲突或本地分支落后，必须明确报告“尚未同步”，先解决同步问题，不得覆盖队友改动。
-- Q1、Q2、Q3 使用独立分支和独立目录。
-- Q1 主要负责 `code/Q1/`、`results/Q1/`、`paper/sections/q1.tex`。
-- Q2 主要负责 `code/Q2/`、`results/Q2/`、`paper/sections/q2.tex`。
-- Q3 主要负责 `code/Q3/`、`results/Q3/`、`paper/sections/q3.tex`。
+- 每个子问题使用 `Q1`、`Q2`、……、`Qn` 的独立分支和独立目录；题目有几问就建立到 `Qn`，不要预设固定为三问。
+- 每位成员负责自己认领的 `code/Qx/`、`results/Qx/` 和 `paper/sections/qx.tex`；新增问题时沿用同一命名规则。
 - `AGENTS.md`、`paper/main.tex`、`paper/common_setup.tex`、公共符号表和最终结论属于共享文件，修改前应通知队友并经过复核。
 - 每次提交只完成一个清晰任务，并在提交信息中说明内容。
 - 普通文字润色、临时探索和个人草稿可以不立即推送，但一旦影响方法、结果、图表、论文数字或下游写作，必须按上述同步规则提交并推送。
@@ -21,7 +19,7 @@
 - AI 可以处理机械性工作，但模型取舍、假设合理性、结果解释和最终提交由队员确认。
 - 不得编造数据、模型结果、评价指标、引用或结论。
 - `data_raw/` 中的原始数据不得修改；清洗结果写入 `data_clean/`。
-- 每个问题的代码、结果、图表和日志放在对应的 Qx 目录中，不得互相覆盖。
+- 每个问题的代码、结果、图表和日志放在对应的 `Qx` 目录中，不得互相覆盖；如果题目出现 Q4 或更多问题，按相同规则新增目录。
 - 使用固定随机种子，保存输入、参数、指标和输出路径，确保结果可复现。
 
 ## LaTeX 与 Overleaf
@@ -29,13 +27,13 @@
 - `paper/main.tex` 是电子版论文入口，使用 XeLaTeX。
 - `paper/main_print.tex` 仅用于纸质版；电子版不得包含承诺书和编号专用页。
 - 正文不设目录，正文不超过 30 页；附录列出支撑材料和完整可运行代码。
-- Q1、Q2、Q3 分别写入 `paper/sections/q1.tex`、`q2.tex`、`q3.tex`。
+- 各子问题分别写入 `paper/sections/qx.tex`；题目有新增问题时，按相同规则新增文件并更新主文档引用顺序。
 - 图片放入 `paper/figures/`，文件名使用英文、数字和下划线。
 - 所有供论文作者使用的素材统一放在 `paper/assets/`：图表放 `paper/assets/figures/`，表格源文件放 `paper/assets/tables/`，参考论文和公开资料放 `paper/assets/references/`，阅读摘要、出处和使用建议放 `paper/assets/literature_notes/`。不要把论文素材散落在个人桌面或 Qx 代码目录。
 - `paper/assets/` 是论文素材的协作入口；Codex 写作前必须检查其中是否有新增或更新文件，并优先使用已核验的素材。
 - 论文正文引用的最终数字仍以 `results/Qx/` 中的验证结果为准；`paper/assets/` 中的图表和资料必须标注来源、用途和对应问题。
 - 论文数字必须来自已验证的结果文件；冻结数字更新时必须说明原因并重新检查受影响内容。
-- 三人可以在 Overleaf 实时协作，但不要同时修改同一个 `.tex` 文件。
+- 各子问题可以在 Overleaf 实时协作，但不要同时修改同一个 `.tex` 文件；Q4、Q5 等新增问题沿用相同规则。
 - 默认只修改本地同步副本；执行同步或推送前先检查 `git diff`。
 
 ## AI 工具使用
@@ -43,3 +41,10 @@
 - 使用 AI 时，记录工具名称、版本、使用环节、采纳内容、人工修改和核验情况。
 - 论文参考文献前保留真实的 AI 工具使用声明，并在 `support_materials/` 准备 AI 使用详情文件。
 - 不得把 Overleaf 密码、Git token、API key 或其他敏感信息提交到仓库。
+
+## 数学建模 skill 同步
+
+- skill 的源仓库和版本记录放在 `skills/skill_manifest.json`；三位成员必须安装同一仓库、同一分支或同一提交版本。
+- skill 不会因为 GitHub 同步项目文件而自动安装到每个人的 Codex 环境；每位成员首次使用前都要按 `skills/README.md` 完成本机安装。
+- 不要只在个人电脑中修改 skill。若确需修改，先在 skill 源仓库形成提交，再更新 `skills/skill_manifest.json`，并通知所有成员重新安装或更新。
+- Codex 读取项目规则时，以本仓库的 `AGENTS.md` 和 `skills/skill_manifest.json` 为准；使用 skill 前先检查本机安装版本是否匹配。

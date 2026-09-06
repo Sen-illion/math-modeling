@@ -1,0 +1,15 @@
+{
+  "name": "mathmodeling-skills",
+  "source": "https://github.com/zhnnky329/MathModeling-skills",
+  "ref": "main",
+  "version_policy": "all_members_use_the_same_commit_or_release",
+  "install_note": "Each collaborator installs this skill in their own Codex environment; GitHub project sync does not install skills automatically.",
+  "required_for": [
+    "problem parsing",
+    "data auditing and cleaning",
+    "method selection",
+    "model code generation and review",
+    "paper writing",
+    "quality assurance"
+  ]
+}
