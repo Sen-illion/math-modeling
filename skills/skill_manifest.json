@@ -6,6 +6,18 @@
   "plugin_version": "0.1.0",
   "version_policy": "all_members_use_the_same_commit_or_release",
   "install_note": "Each collaborator installs this skill in their own Codex environment; GitHub project sync does not install skills automatically.",
+  "required_project_directories": [
+    "problem_files",
+    "data_raw",
+    "data_clean",
+    "code",
+    "results",
+    "paper",
+    "paper/assets",
+    "planning",
+    "references",
+    "support_materials"
+  ],
   "required_for": [
     "problem parsing",
     "data auditing and cleaning",
@@ -26,5 +38,18 @@
     "paper-section-writer",
     "quality-assurance-auditor",
     "workflow-orchestrator"
-  ]
+  ],
+  "skill_file_hashes": {
+    "problem-parser": "08B2EBC5E1990B94B0667DBDB097EAE82016901123C33247A0ADF4C4A5848EB6",
+    "data-auditor-cleaner": "541F1F22556069A81F8A983D60D6F10DCAB4F259BE38B4114DA54D85A66AC749",
+    "method-selector": "964BF84E721D455EEF541EC7B8918B117DFCC9BBE84A74A1731F2389C792034A",
+    "model-code-analyzer": "6B68D5E1BC786E2E3A1574E6C1CC1AF596623F6165EE22083C4DFD9BECD723B2",
+    "python-model-code-generator": "D2877A8B66DA957B0F45BDD72CD70D9345B6D2B2FCD677C2176ABA2B29C5E102",
+    "python-code-reviewer": "5927BEBD330BC12C65ED3D049CE27244B8DAFB4CAA9E05B1B6F6E77A11021F83",
+    "result-report-generator": "8C2FE0F787789C6DDC1F42B0B58A8D781E74A99B5BF42C78409E4301151E0669",
+    "robustness-checker": "42052BCEA0723ADDA0FDD2CE8BC19B83F33240594FF84849FCE29D883095D223",
+    "paper-section-writer": "B26A94513D39D2F785618DEE938FB69304B9EC0E342C4333E8D78ECDD4710788",
+    "quality-assurance-auditor": "8F229DEE8644A41B60D30DCAD5C9A1042D1DD6C38A30FACAD07028A46F919218",
+    "workflow-orchestrator": "E21BD791FAA435043BE6CF11D038ACC22C81746D3C3427AA7C9581E0C81121EB"
+  }
 }
