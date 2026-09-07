@@ -1,7 +1,8 @@
 {
   "name": "mathmodeling-skills",
   "source": "https://github.com/zhnnky329/MathModeling-skills",
-  "ref": "main",
+  "ref": "046a6e74814c2e5fef72b5ee56305509a8635e1d",
+  "tracked_branch": "main",
   "version_policy": "all_members_use_the_same_commit_or_release",
   "install_note": "Each collaborator installs this skill in their own Codex environment; GitHub project sync does not install skills automatically.",
   "required_for": [
