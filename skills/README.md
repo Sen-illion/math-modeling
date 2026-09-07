@@ -19,6 +19,16 @@
 
 安装完成后，重启或开启新的 Codex 会话，再在项目目录中工作。项目内的 `AGENTS.md` 会约束具体工作方式。
 
+## 冷启动检查
+
+在项目根目录运行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/cold_start_check.ps1
+```
+
+检查通过后会生成本机专用的 `.local/codex_environment.json`。该文件已被 `.gitignore` 排除，不会错误地把一个队员的安装状态同步给另外两个人。检查脚本不会自行安装或覆盖 skill；如果检查失败，Codex 应主动说明缺少什么，并等待用户确认安装。
+
 ## 重要区别
 
 - `AGENTS.md`、题目、数据、代码、结果、论文和素材：通过 GitHub 共享；

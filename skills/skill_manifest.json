@@ -3,6 +3,7 @@
   "source": "https://github.com/zhnnky329/MathModeling-skills",
   "ref": "046a6e74814c2e5fef72b5ee56305509a8635e1d",
   "tracked_branch": "main",
+  "plugin_version": "0.1.0",
   "version_policy": "all_members_use_the_same_commit_or_release",
   "install_note": "Each collaborator installs this skill in their own Codex environment; GitHub project sync does not install skills automatically.",
   "required_for": [
@@ -12,5 +13,18 @@
     "model code generation and review",
     "paper writing",
     "quality assurance"
+  ],
+  "required_skill_directories": [
+    "problem-parser",
+    "data-auditor-cleaner",
+    "method-selector",
+    "model-code-analyzer",
+    "python-model-code-generator",
+    "python-code-reviewer",
+    "result-report-generator",
+    "robustness-checker",
+    "paper-section-writer",
+    "quality-assurance-auditor",
+    "workflow-orchestrator"
   ]
 }

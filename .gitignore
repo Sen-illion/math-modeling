@@ -34,3 +34,6 @@ Thumbs.db
 # 临时导出文件
 *.tmp
 *.bak
+
+# 每台电脑独立的 Codex 冷启动验证状态
+.local/

@@ -1,5 +1,14 @@
 # 全国大学生数学建模竞赛项目协作规范
 
+## Codex 会话冷启动协议
+
+- Codex 第一次在本项目工作，或新的队员/电脑首次打开项目时，必须先读取本文件和 `skills/skill_manifest.json`，然后运行 `powershell -ExecutionPolicy Bypass -File scripts/cold_start_check.ps1`。
+- 冷启动检查包括：Git 仓库与远程状态、项目关键目录、数学建模 skill 是否存在、已发现版本及必需技能目录是否完整。
+- 检查通过后，在本机生成 `.local/codex_environment.json`。`.local/` 不提交 GitHub，只代表当前电脑的验证状态。
+- 如果 `.local/codex_environment.json` 中记录的 manifest 指纹与当前 `skills/skill_manifest.json` 一致，后续普通会话不重复安装；但 Codex 仍需在开始实质工作前拉取仓库最新状态。
+- 如果 skill 缺失、版本不符、必需组件不完整或 manifest 已更新，Codex 必须主动报告需要安装/更新的仓库和版本，并在正式建模前请求用户执行或确认安装。
+- 冷启动脚本只检查和报告，不自动覆盖或安装 skill；不得在检查失败时假装环境可用并继续正式建模。
+
 ## 仓库与分工
 
 - `main` 分支为稳定版本，不直接提交。
@@ -49,3 +58,4 @@
 - skill 不会因为 GitHub 同步项目文件而自动安装到每个人的 Codex 环境；每位成员首次使用前都要按 `skills/README.md` 完成本机安装。
 - 不要只在个人电脑中修改 skill。若确需修改，先在 skill 源仓库形成提交，再更新 `skills/skill_manifest.json`，并通知所有成员重新安装或更新。
 - Codex 读取项目规则时，以本仓库的 `AGENTS.md` 和 `skills/skill_manifest.json` 为准；使用 skill 前先检查本机安装版本是否匹配。
+- 本机冷启动结果保存在 `.local/codex_environment.json`；该文件只用于避免重复检查，不得作为其他队员已经安装成功的证据。
