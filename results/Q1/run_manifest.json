@@ -1,9 +1,10 @@
 {
   "question": "Q1",
-  "created_at": "2026-09-10T12:46:03.240171+00:00",
+  "created_at": "2026-09-10T13:45:18.324752+00:00",
   "solver": "PULP_CBC_CMD",
   "status": "Optimal",
-  "elapsed_s": 0.059236846000203514,
+  "elapsed_s": 0.03725050199955149,
+  "power_limit": "microgrid_interface_5000kW",
   "inputs": {
     "attachment1": "/workspace/data_raw/Q1/attachment1.xlsx",
     "attachment1_sha256": "66b87134f5ecccd68184d3539bb1293ef039f9e0fdd955a589b9bfa7f227c377",
@@ -30,27 +31,33 @@
       "discharge_kwh": 0.0,
       "curtail_kwh": 6247.962966666666,
       "soc0_kwh": 6000.0,
-      "soc24_kwh": 6000.0
+      "soc24_kwh": 6000.0,
+      "max_interface_charge_kw": 0.0,
+      "max_interface_discharge_kw": 0.0
     },
     "B1": {
       "name": "B1",
       "purchase_kwh": 62708.51696666666,
-      "cost": 38584.817584779994,
+      "cost": 38683.82913271333,
       "charge_kwh": 16757.13159259259,
-      "discharge_kwh": 16757.131592592596,
+      "discharge_kwh": 16757.131592592592,
       "curtail_kwh": 3628.927863786011,
       "soc0_kwh": 6000.0,
-      "soc24_kwh": 5999.999999999999
+      "soc24_kwh": 5999.999999999999,
+      "max_interface_charge_kw": 5000.0,
+      "max_interface_discharge_kw": 4956.499500000001
     },
     "M0": {
       "name": "M0",
-      "purchase_kwh": 59482.698919999995,
-      "cost": 35101.56752036099,
-      "charge_kwh": 18666.59946,
+      "purchase_kwh": 59482.6989,
+      "cost": 35126.948548219996,
+      "charge_kwh": 18666.59952,
       "discharge_kwh": 18666.599541,
       "curtail_kwh": 0.0,
       "soc0_kwh": 6000.0,
-      "soc24_kwh": 6000.0
+      "soc24_kwh": 6000.0,
+      "max_interface_charge_kw": 5000.0,
+      "max_interface_discharge_kw": 4293.918216000001
     }
   },
   "outputs": {

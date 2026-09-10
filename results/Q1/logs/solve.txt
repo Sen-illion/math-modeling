@@ -1,4 +1,4 @@
 status=Optimal
-objective=35101.567520
-elapsed_s=0.059
+objective=35126.948548
+elapsed_s=0.037
 errors=0
