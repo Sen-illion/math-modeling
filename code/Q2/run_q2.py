@@ -19,7 +19,7 @@ from config import (  # noqa: E402
     ATTACHMENT1_XLSX,
     ATTACHMENT2_XLSX,
     DT_HOURS,
-    E0_JAN1_KWH,
+    E0_FEB1_KWH,
     E_MAX_KWH,
     E_MIN_KWH,
     ETA_CHARGE,
@@ -38,6 +38,7 @@ from config import (  # noqa: E402
     REPO_ROOT,
     RESULT2_TEMPLATE_XLSX,
     RESULT_DIR,
+    SIM_START,
     TERMINAL_LAMBDA,
     TERMINAL_TARGET_KWH,
     XGB_PARAMS,
@@ -171,7 +172,8 @@ def run_model(
             model_name, prices, year, start_idx, end_idx, load_panel, pv_panel
         )
     price = prices["price"].to_numpy(dtype=float)
-    soc_actual = E0_JAN1_KWH
+    sim_start = pd.Timestamp(SIM_START)
+    soc_actual = E0_FEB1_KWH
     rows = []
     t0 = time.perf_counter()
     n_simultaneous = 0
@@ -180,6 +182,11 @@ def run_model(
     official_start = pd.Timestamp(OFFICIAL_START)
 
     for pred in forecasts:
+        stamp = pd.Timestamp(pred["date"])
+        if stamp < sim_start:
+            continue
+        if stamp == sim_start:
+            soc_actual = E0_FEB1_KWH
         day = int(pred["day"])
         if (pred["load_kw"] < -1e-12).any() or (pred["pv_kw"] < -1e-12).any() or pred["neg_pred"]:
             neg_pred += 1
@@ -271,17 +278,20 @@ def run_model(
         "n_validation_errors": len(all_errors),
         "validation_errors_head": all_errors[:20],
         "feb1_soc0": float(daily.loc[daily["date"] == "2025-02-01", "soc0_actual"].iloc[0])
-        if "2025-02-01" in set(daily["date"])
+        if len(daily) and "2025-02-01" in set(daily["date"])
         else None,
-        "last_soc24_actual": float(daily["soc24_actual"].iloc[-1]),
-        "last_soc24_plan": float(daily["soc24_plan"].iloc[-1]),
+        "last_soc24_actual": float(daily["soc24_actual"].iloc[-1]) if len(daily) else None,
+        "last_soc24_plan": float(daily["soc24_plan"].iloc[-1]) if len(daily) else None,
         "mean_soc24_actual": float(official["soc24_actual"].mean()) if len(official) else None,
         "mean_soc24_plan": float(official["soc24_plan"].mean()) if len(official) else None,
-        "soc_min_actual": float(daily["soc24_actual"].min()),
-        "soc_max_actual": float(daily["soc24_actual"].max()),
+        "soc_min_actual": float(daily["soc24_actual"].min()) if len(daily) else None,
+        "soc_max_actual": float(daily["soc24_actual"].max()) if len(daily) else None,
+        "soc_init": "feb1_6000",
         "terminal_lambda": TERMINAL_LAMBDA if terminal_mode == "track6000" else 0.0,
         "terminal_target_kwh": TERMINAL_TARGET_KWH if terminal_mode == "track6000" else None,
     }
+    if summary["feb1_soc0"] is not None and abs(summary["feb1_soc0"] - E0_FEB1_KWH) > 1e-6:
+        raise RuntimeError(f"Feb 1 00:00 SOC must be {E0_FEB1_KWH}, got {summary['feb1_soc0']}")
     return {"daily": daily, "summary": summary}
 
 
@@ -297,11 +307,9 @@ def write_verification_report(audit: dict, leakage: dict, summaries: list[dict],
         f"2. kW→kWh：统一乘以 10/60={audit['dt_hours']}；第 0 日换算残差 {audit['kwh_check_load_day0']:.3e} kWh。",
         f"3. 未来信息泄漏检查：{'通过' if leakage['passed'] else '未通过'}。"
         f"错误 {leakage['n_errors']} 条。未做随机划分，特征与训练日均要求 < D。",
-        "4. 2月1日初始SOC：由 2025-01-01 0:00 的 6000 kWh 起，按各模型自己的计划购电 + 实际因果回测滚动到 1月31日 24:00；"
-        "不是题面直接给出的 2月1日初值，也不是每天重置 6000。",
-        "5. 每日首尾 SOC 相等：问题2第一版**没有**强制 SOC[d,0]=SOC[d,24]=6000。"
-        "仅 1月1日 0:00 为 6000 kWh；此后 SOC 跨日传递实际值，并夹在 1200–10800 kWh。"
-        "这是对问题1日闭环的改口，题面只要求运行窗，不要求每天回到 6000。",
+        "4. 2月1日初始SOC：固定为 6000 kWh。1 月历史只用于预报训练和残差分位，不把 1 月回测 SOC 滚到 2 月 1 日。",
+        "5. 每日首尾 SOC 相等：问题2**没有**强制 SOC[d,0]=SOC[d,24]=6000。"
+        "仅 2月1日 0:00 为 6000 kWh；此后 SOC 跨日传递实际值，并夹在 1200–10800 kWh。",
         f"6. 效率定义：建模假设充、放各 0.9，交流侧 "
         f"SOC += {ETA_CHARGE}*charge - discharge/{ETA_DISCHARGE}；"
         "不是题面另行给出的单程/往返拆分。",
@@ -388,7 +396,7 @@ def choose_mpc_stride(prices: pd.DataFrame, year: dict, forecasts: list[dict]) -
         price,
         pred["load_kw"] * DT_HOURS,
         pred["pv_kw"] * DT_HOURS,
-        E0_JAN1_KWH,
+        E0_FEB1_KWH,
         soc_mu=0.25,
     )
     simulate_day_mpc(
@@ -398,7 +406,7 @@ def choose_mpc_stride(prices: pd.DataFrame, year: dict, forecasts: list[dict]) -
         pred["load_kw"] * DT_HOURS,
         pred["pv_kw"] * DT_HOURS,
         plan["purchase_kwh"],
-        E0_JAN1_KWH,
+        E0_FEB1_KWH,
         stride=MPC_STRIDE,
     )
     one_day = time.perf_counter() - t0
@@ -512,15 +520,20 @@ def select_official_config(summaries: list[dict], configs: list[dict]) -> dict:
 def run_oracle_phase1(prices: pd.DataFrame, year: dict, start_idx: int, end_idx: int) -> dict:
     price = prices["price"].to_numpy(dtype=float)
     official_start = pd.Timestamp(OFFICIAL_START)
-    soc = E0_JAN1_KWH
+    sim_start = pd.Timestamp(SIM_START)
+    soc = E0_FEB1_KWH
     rows = []
     t0 = time.perf_counter()
     for day in range(start_idx, end_idx + 1):
+        stamp = pd.Timestamp(year["dates"].iloc[day])
+        if stamp < sim_start:
+            continue
+        if stamp == sim_start:
+            soc = E0_FEB1_KWH
         load = year["load_kwh"][day]
         pv = year["pv_kwh"][day]
         plan = solve_day_lp(price, load, pv, soc, soc_mu=0.0)
         actual = simulate_day_mpc(price, load, pv, load, pv, plan["purchase_kwh"], soc, soc_mu=0.0, stride=1)
-        stamp = pd.Timestamp(year["dates"].iloc[day])
         rows.append(
             {
                 "date": str(stamp.date()),
