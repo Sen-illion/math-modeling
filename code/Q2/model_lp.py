@@ -1,9 +1,10 @@
-"""Day-ahead purchase LP on predicted load/PV. AC-side charge/discharge."""
+"""Day-ahead purchase LP and remaining-horizon dispatch LP. AC-side charge/discharge."""
 
 from __future__ import annotations
 
 import numpy as np
 import pulp
+from scipy.optimize import linprog
 
 from config import (
     ABS_TOL_KWH,
@@ -14,11 +15,17 @@ from config import (
     N_INTERVALS,
     P_MAX_KWH,
     REL_TOL,
+    REMAINING_LP_TIME_LIMIT_S,
     SIMULTANEOUS_TOL,
     SOLVER_TIME_LIMIT_S,
     TERMINAL_LAMBDA,
     TERMINAL_TARGET_KWH,
 )
+
+
+def _val(var) -> float:
+    value = pulp.value(var)
+    return 0.0 if value is None else float(value)
 
 
 def solve_day_lp(
@@ -27,6 +34,7 @@ def solve_day_lp(
     pv_kwh: np.ndarray,
     soc0: float,
     terminal_mode: str = "none",
+    soc_mu: float = 0.0,
 ) -> dict:
     n = N_INTERVALS
     if len(price) != n or len(load_kwh) != n or len(pv_kwh) != n:
@@ -43,6 +51,8 @@ def solve_day_lp(
 
     eps = 1e-7
     obj = pulp.lpSum(price[t] * g[t] + eps * (c[t] + d[t]) for t in range(n))
+    if soc_mu:
+        obj -= float(soc_mu) * e[n - 1]
     if terminal_mode == "track6000":
         surplus = pulp.LpVariable("term_pos", lowBound=0)
         shortage = pulp.LpVariable("term_neg", lowBound=0)
@@ -63,11 +73,11 @@ def solve_day_lp(
     if status_name != "Optimal":
         raise RuntimeError(f"Q2 LP not Optimal: {status_name}")
 
-    purchase = np.array([float(pulp.value(g[t])) for t in range(n)])
-    charge = np.array([float(pulp.value(c[t])) for t in range(n)])
-    discharge = np.array([float(pulp.value(d[t])) for t in range(n)])
-    curtail = np.array([float(pulp.value(w[t])) for t in range(n)])
-    soc = np.array([float(pulp.value(e[t])) for t in range(n)])
+    purchase = np.array([_val(g[t]) for t in range(n)])
+    charge = np.array([_val(c[t]) for t in range(n)])
+    discharge = np.array([_val(d[t]) for t in range(n)])
+    curtail = np.array([_val(w[t]) for t in range(n)])
+    soc = np.array([_val(e[t]) for t in range(n)])
     simultaneous = int(np.sum((charge > SIMULTANEOUS_TOL) & (discharge > SIMULTANEOUS_TOL)))
     return {
         "status": status_name,
@@ -80,8 +90,123 @@ def solve_day_lp(
         "plan_cost": float(np.dot(price, purchase)),
         "n_simultaneous": simultaneous,
         "terminal_mode": terminal_mode,
+        "soc_mu": float(soc_mu),
         "terminal_abs_dev": abs(float(soc[-1]) - TERMINAL_TARGET_KWH),
     }
+
+
+def _solve_remaining_highs(
+    price: np.ndarray,
+    load_kwh: np.ndarray,
+    pv_kwh: np.ndarray,
+    purchase_kwh: np.ndarray,
+    soc0: float,
+    soc_mu: float,
+) -> dict | None:
+    n = len(price)
+    nvar = 5 * n
+    c_obj = np.zeros(nvar)
+    for t in range(n):
+        c_obj[t] = 1e-7
+        c_obj[n + t] = 1e-7
+        c_obj[3 * n + t] = 5.0 * float(price[t])
+    c_obj[4 * n + n - 1] -= float(soc_mu)
+
+    bounds = [(0.0, P_MAX_KWH)] * n + [(0.0, P_MAX_KWH)] * n
+    bounds += [(0.0, None)] * n + [(0.0, None)] * n
+    bounds += [(E_MIN_KWH, E_MAX_KWH)] * n
+
+    a_eq = np.zeros((2 * n, nvar))
+    b_eq = np.zeros(2 * n)
+    for t in range(n):
+        a_eq[t, t] = -1.0
+        a_eq[t, n + t] = 1.0
+        a_eq[t, 2 * n + t] = -1.0
+        a_eq[t, 3 * n + t] = 1.0
+        b_eq[t] = float(load_kwh[t] - pv_kwh[t] - purchase_kwh[t])
+        a_eq[n + t, 4 * n + t] = 1.0
+        a_eq[n + t, t] = -ETA_CHARGE
+        a_eq[n + t, n + t] = 1.0 / ETA_DISCHARGE
+        if t == 0:
+            b_eq[n + t] = float(soc0)
+        else:
+            a_eq[n + t, 4 * n + t - 1] = -1.0
+
+    result = linprog(c_obj, A_eq=a_eq, b_eq=b_eq, bounds=bounds, method="highs")
+    if not result.success or result.x is None:
+        return None
+    x = result.x
+    charge = np.maximum(x[0:n], 0.0)
+    discharge = np.maximum(x[n : 2 * n], 0.0)
+    curtail = np.maximum(x[2 * n : 3 * n], 0.0)
+    emergency = np.maximum(x[3 * n : 4 * n], 0.0)
+    soc = x[4 * n : 5 * n]
+    return {
+        "status": "Optimal",
+        "charge_kwh": charge,
+        "discharge_kwh": discharge,
+        "curtail_kwh": curtail,
+        "emergency_kwh": emergency,
+        "soc_end_kwh": soc,
+        "solver": "highs",
+    }
+
+
+def _solve_remaining_pulp(
+    price: np.ndarray,
+    load_kwh: np.ndarray,
+    pv_kwh: np.ndarray,
+    purchase_kwh: np.ndarray,
+    soc0: float,
+    soc_mu: float,
+) -> dict:
+    n = len(price)
+    prob = pulp.LpProblem("q2_remaining", pulp.LpMinimize)
+    c = [pulp.LpVariable(f"c_{t}", lowBound=0, upBound=P_MAX_KWH) for t in range(n)]
+    d = [pulp.LpVariable(f"d_{t}", lowBound=0, upBound=P_MAX_KWH) for t in range(n)]
+    w = [pulp.LpVariable(f"w_{t}", lowBound=0) for t in range(n)]
+    gem = [pulp.LpVariable(f"gem_{t}", lowBound=0) for t in range(n)]
+    e = [pulp.LpVariable(f"E_{t}", lowBound=E_MIN_KWH, upBound=E_MAX_KWH) for t in range(n)]
+    eps = 1e-7
+    obj = pulp.lpSum(5.0 * price[t] * gem[t] + eps * (c[t] + d[t]) for t in range(n))
+    if soc_mu:
+        obj -= float(soc_mu) * e[n - 1]
+    prob += obj
+    for t in range(n):
+        prev = soc0 if t == 0 else e[t - 1]
+        prob += purchase_kwh[t] + pv_kwh[t] + d[t] + gem[t] == load_kwh[t] + c[t] + w[t]
+        prob += e[t] == prev + ETA_CHARGE * c[t] - d[t] / ETA_DISCHARGE
+    status = prob.solve(pulp.PULP_CBC_CMD(msg=False, timeLimit=REMAINING_LP_TIME_LIMIT_S))
+    status_name = pulp.LpStatus[status]
+    if status_name != "Optimal":
+        raise RuntimeError(f"Q2 remaining LP not Optimal: {status_name}")
+    return {
+        "status": status_name,
+        "charge_kwh": np.array([_val(c[t]) for t in range(n)]),
+        "discharge_kwh": np.array([_val(d[t]) for t in range(n)]),
+        "curtail_kwh": np.array([_val(w[t]) for t in range(n)]),
+        "emergency_kwh": np.array([_val(gem[t]) for t in range(n)]),
+        "soc_end_kwh": np.array([_val(e[t]) for t in range(n)]),
+        "solver": "cbc",
+    }
+
+
+def solve_remaining_lp(
+    price: np.ndarray,
+    load_kwh: np.ndarray,
+    pv_kwh: np.ndarray,
+    purchase_kwh: np.ndarray,
+    soc0: float,
+    soc_mu: float = 0.0,
+) -> dict:
+    n = len(price)
+    if not (len(load_kwh) == n and len(pv_kwh) == n and len(purchase_kwh) == n):
+        raise ValueError("remaining LP arrays must share length")
+    soc0 = float(min(E_MAX_KWH, max(E_MIN_KWH, soc0)))
+    highs = _solve_remaining_highs(price, load_kwh, pv_kwh, purchase_kwh, soc0, soc_mu)
+    if highs is not None:
+        return highs
+    return _solve_remaining_pulp(price, load_kwh, pv_kwh, purchase_kwh, soc0, soc_mu)
 
 
 def _tol(scale: float) -> float:

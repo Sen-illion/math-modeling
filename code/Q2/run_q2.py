@@ -26,27 +26,34 @@ from config import (  # noqa: E402
     ETA_DISCHARGE,
     FULL_DIR,
     MODEL_NAMES,
+    MPC_STRIDE,
+    MPC_STRIDE_FALLBACK,
     OFFICIAL_END,
     OFFICIAL_START,
+    OPT_DIR,
     P_MAX_KWH,
     PHASE1_DIR,
     PHASE1_END,
+    PHASE1_MPC_BUDGET_S,
     REPO_ROOT,
     RESULT2_TEMPLATE_XLSX,
     RESULT_DIR,
     TERMINAL_LAMBDA,
+    TERMINAL_TARGET_KWH,
     XGB_PARAMS,
 )
-from forecast import precompute_panel, predict_day  # noqa: E402
+from forecast import apply_conservative_bias, precompute_panel, predict_day  # noqa: E402
 from leakage import run_leakage_suite  # noqa: E402
 from load_data import audit_data, load_prices, load_year_actuals, write_clean  # noqa: E402
 from model_lp import solve_day_lp, validate_plan  # noqa: E402
-from simulate import simulate_day, validate_actual  # noqa: E402
+from simulate import simulate_day, simulate_day_mpc, validate_actual  # noqa: E402
 
 
 def copy_raw_inputs() -> None:
     src_att = REPO_ROOT / "problem_files" / "附件"
     ATTACHMENT1_XLSX.parent.mkdir(parents=True, exist_ok=True)
+    if ATTACHMENT1_XLSX.exists() and ATTACHMENT2_XLSX.exists() and RESULT2_TEMPLATE_XLSX.exists():
+        return
     shutil.copy2(src_att / "附件1.xlsx", ATTACHMENT1_XLSX)
     shutil.copy2(src_att / "附件2.xlsx", ATTACHMENT2_XLSX)
     shutil.copy2(src_att / "附件5" / "result2.xlsx", RESULT2_TEMPLATE_XLSX)
@@ -65,11 +72,13 @@ def collect_forecasts(
     end_idx: int,
     load_panel: pd.DataFrame,
     pv_panel: pd.DataFrame,
+    cache: dict | None = None,
+    pv_source: str = "model",
 ) -> tuple[list[dict], float]:
     dates = year["dates"]
     fallback_load = prices["typical_load_kw"].to_numpy(dtype=float)
     fallback_pv = prices["typical_pv_kw"].to_numpy(dtype=float)
-    cache: dict = {}
+    cache = {} if cache is None else cache
     out = []
     t0 = time.perf_counter()
     for day in range(start_idx, end_idx + 1):
@@ -84,6 +93,7 @@ def collect_forecasts(
             cache,
             load_panel=load_panel,
             pv_panel=pv_panel,
+            pv_source=pv_source,
         )
         load_mae, load_rmse = mae_rmse(pred["load_kw"], year["load_kw"][day])
         pv_mae, pv_rmse = mae_rmse(pred["pv_kw"], year["pv_kw"][day])
@@ -99,9 +109,45 @@ def collect_forecasts(
                 "pv_mae_kw": pv_mae,
                 "pv_rmse_kw": pv_rmse,
                 "neg_pred": bool((pred["load_kw"] < -1e-12).any() or (pred["pv_kw"] < -1e-12).any()),
+                "pv_source": pred.get("pv_source", pv_source),
             }
         )
     return out, time.perf_counter() - t0
+
+
+def apply_bias_forecasts(
+    forecasts: list[dict],
+    year: dict,
+    q_load: float | None,
+    q_pv: float | None,
+) -> list[dict]:
+    load_resid: list[np.ndarray] = []
+    pv_resid: list[np.ndarray] = []
+    out = []
+    for pred in forecasts:
+        day = int(pred["day"])
+        load_plan, pv_plan = apply_conservative_bias(
+            pred["load_kw"],
+            pred["pv_kw"],
+            load_resid,
+            pv_resid,
+            q_load,
+            q_pv,
+            year["pv_kw"][:day],
+        )
+        load_resid.append(year["load_kw"][day] - pred["load_kw"])
+        pv_resid.append(year["pv_kw"][day] - pred["pv_kw"])
+        row = dict(pred)
+        row["load_point_kw"] = pred["load_kw"]
+        row["pv_point_kw"] = pred["pv_kw"]
+        row["load_kw"] = load_plan
+        row["pv_kw"] = pv_plan
+        row["q_load"] = q_load
+        row["q_pv"] = q_pv
+        row["load_mae_kw"], row["load_rmse_kw"] = mae_rmse(load_plan, year["load_kw"][day])
+        row["pv_mae_kw"], row["pv_rmse_kw"] = mae_rmse(pv_plan, year["pv_kw"][day])
+        out.append(row)
+    return out
 
 
 def run_model(
@@ -115,6 +161,10 @@ def run_model(
     terminal_mode: str = "none",
     forecasts: list[dict] | None = None,
     forecast_s: float = 0.0,
+    soc_mu: float = 0.0,
+    dispatch: str = "greedy",
+    mpc_stride: int = 1,
+    policy_name: str | None = None,
 ) -> dict:
     if forecasts is None:
         forecasts, forecast_s = collect_forecasts(
@@ -135,16 +185,29 @@ def run_model(
             neg_pred += 1
         load_hat = pred["load_kw"] * DT_HOURS
         pv_hat = pred["pv_kw"] * DT_HOURS
-        plan = solve_day_lp(price, load_hat, pv_hat, soc_actual, terminal_mode=terminal_mode)
+        plan = solve_day_lp(price, load_hat, pv_hat, soc_actual, terminal_mode=terminal_mode, soc_mu=soc_mu)
         all_errors.extend(validate_plan(plan, price, load_hat, pv_hat))
         n_simultaneous += int(plan["n_simultaneous"])
-        actual = simulate_day(
-            price,
-            year["load_kwh"][day],
-            year["pv_kwh"][day],
-            plan["purchase_kwh"],
-            soc_actual,
-        )
+        if dispatch == "mpc":
+            actual = simulate_day_mpc(
+                price,
+                year["load_kwh"][day],
+                year["pv_kwh"][day],
+                load_hat,
+                pv_hat,
+                plan["purchase_kwh"],
+                soc_actual,
+                soc_mu=soc_mu,
+                stride=mpc_stride,
+            )
+        else:
+            actual = simulate_day(
+                price,
+                year["load_kwh"][day],
+                year["pv_kwh"][day],
+                plan["purchase_kwh"],
+                soc_actual,
+            )
         all_errors.extend(validate_actual(actual, plan["purchase_kwh"], year["load_kwh"][day], year["pv_kwh"][day]))
         stamp = pd.Timestamp(pred["date"])
         rows.append(
@@ -152,6 +215,10 @@ def run_model(
                 "date": pred["date"],
                 "official": bool(stamp >= official_start),
                 "terminal_mode": terminal_mode,
+                "soc_mu": float(soc_mu),
+                "dispatch": dispatch,
+                "mpc_stride": int(mpc_stride) if dispatch == "mpc" else None,
+                "policy": policy_name or model_name,
                 "soc0_actual": float(soc_actual),
                 "soc24_actual": float(actual["soc24_kwh"]),
                 "soc24_plan": float(plan["soc_end_kwh"][-1]),
@@ -178,7 +245,11 @@ def run_model(
     official = daily[daily["official"]].copy()
     summary = {
         "model": model_name,
+        "policy": policy_name or model_name,
         "terminal_mode": terminal_mode,
+        "soc_mu": float(soc_mu),
+        "dispatch": dispatch,
+        "mpc_stride": int(mpc_stride) if dispatch == "mpc" else None,
         "n_days_run": int(len(daily)),
         "n_official_days": int(len(official)),
         "elapsed_s": elapsed,
@@ -272,13 +343,355 @@ def write_verification_report(audit: dict, leakage: dict, summaries: list[dict],
     out_path.write_text("\n".join(lines), encoding="utf-8")
 
 
+PHASE1_TUNE_CONFIGS = [
+    {"name": "V1", "pv_source": "model", "q_load": None, "q_pv": None, "soc_mu": 0.0, "dispatch": "greedy"},
+    {"name": "A_mu0.25", "pv_source": "model", "q_load": None, "q_pv": None, "soc_mu": 0.25, "dispatch": "greedy"},
+    {"name": "A_mu0.4", "pv_source": "model", "q_load": None, "q_pv": None, "soc_mu": 0.4, "dispatch": "greedy"},
+    {"name": "B_mpc", "pv_source": "model", "q_load": None, "q_pv": None, "soc_mu": 0.0, "dispatch": "mpc"},
+    {"name": "C_pv7d_q82", "pv_source": "baseline_7d", "q_load": 0.8, "q_pv": 0.2, "soc_mu": 0.0, "dispatch": "greedy"},
+    {"name": "V2_mu0_q82", "pv_source": "baseline_7d", "q_load": 0.8, "q_pv": 0.2, "soc_mu": 0.0, "dispatch": "mpc"},
+    {"name": "V2_mu0.25_q82", "pv_source": "baseline_7d", "q_load": 0.8, "q_pv": 0.2, "soc_mu": 0.25, "dispatch": "mpc"},
+    {"name": "V2_mu0.4_q82", "pv_source": "baseline_7d", "q_load": 0.8, "q_pv": 0.2, "soc_mu": 0.4, "dispatch": "mpc"},
+]
+
+EXTRA_QUANTILE_CONFIG = {
+    "name": "V2_mu0.25_q73",
+    "pv_source": "baseline_7d",
+    "q_load": 0.7,
+    "q_pv": 0.3,
+    "soc_mu": 0.25,
+    "dispatch": "mpc",
+}
+
+
+def _load_v1_anchor() -> dict:
+    path = FULL_DIR / "summary_xgb_expanding.json"
+    if path.exists():
+        return json.loads(path.read_text(encoding="utf-8"))
+    return {
+        "total_cost": 15308596.58845426,
+        "emergency_cost": 3181936.279685089,
+        "plan_cost": 12126660.308769172,
+        "emergency_kwh": 524585.515882733,
+        "mean_soc24_plan": 1200.0,
+        "feb1_soc0": 2010.3089489259246,
+    }
+
+
+def choose_mpc_stride(prices: pd.DataFrame, year: dict, forecasts: list[dict]) -> int:
+    """Time one MPC day; fall back to hourly stride if 45-day budget would exceed ~3 min."""
+    price = prices["price"].to_numpy(dtype=float)
+    pred = next(p for p in forecasts if int(p["day"]) >= 7)
+    day = int(pred["day"])
+    t0 = time.perf_counter()
+    plan = solve_day_lp(
+        price,
+        pred["load_kw"] * DT_HOURS,
+        pred["pv_kw"] * DT_HOURS,
+        E0_JAN1_KWH,
+        soc_mu=0.25,
+    )
+    simulate_day_mpc(
+        price,
+        year["load_kwh"][day],
+        year["pv_kwh"][day],
+        pred["load_kw"] * DT_HOURS,
+        pred["pv_kw"] * DT_HOURS,
+        plan["purchase_kwh"],
+        E0_JAN1_KWH,
+        stride=MPC_STRIDE,
+    )
+    one_day = time.perf_counter() - t0
+    projected = one_day * 45.0
+    stride = MPC_STRIDE
+    if projected > PHASE1_MPC_BUDGET_S:
+        stride = MPC_STRIDE_FALLBACK
+    print(
+        f"mpc probe day {pred['date']}: {one_day:.3f}s/day, "
+        f"phase1 project {projected:.1f}s, stride={stride}",
+        flush=True,
+    )
+    return stride
+
+
+def run_policy(
+    cfg: dict,
+    prices: pd.DataFrame,
+    year: dict,
+    start_idx: int,
+    end_idx: int,
+    load_panel: pd.DataFrame,
+    pv_panel: pd.DataFrame,
+    forecast_bank: dict,
+    mpc_stride: int,
+) -> dict:
+    source = cfg["pv_source"]
+    forecasts = forecast_bank[source]
+    forecast_s = forecast_bank[f"{source}_s"]
+    biased = apply_bias_forecasts(forecasts, year, cfg["q_load"], cfg["q_pv"])
+    result = run_model(
+        "xgb_expanding",
+        prices,
+        year,
+        start_idx,
+        end_idx,
+        load_panel,
+        pv_panel,
+        terminal_mode="none",
+        forecasts=biased,
+        forecast_s=forecast_s,
+        soc_mu=float(cfg["soc_mu"]),
+        dispatch=cfg["dispatch"],
+        mpc_stride=mpc_stride,
+        policy_name=cfg["name"],
+    )
+    result["summary"]["q_load"] = cfg["q_load"]
+    result["summary"]["q_pv"] = cfg["q_pv"]
+    result["summary"]["pv_source"] = source
+    return result
+
+
+def write_opt_comparison(summaries: list[dict], selected: dict, path: Path) -> None:
+    anchor = _load_v1_anchor()
+    rows = []
+    for s in summaries:
+        rows.append(
+            {
+                "policy": s.get("policy"),
+                "window": "phase1_official" if s.get("n_official_days", 0) <= 20 else "full_official",
+                "n_official_days": s.get("n_official_days"),
+                "total_cost": s.get("total_cost"),
+                "plan_cost": s.get("plan_cost"),
+                "emergency_cost": s.get("emergency_cost"),
+                "emergency_kwh": s.get("emergency_kwh"),
+                "purchase_kwh": s.get("purchase_kwh"),
+                "mean_soc24_actual": s.get("mean_soc24_actual"),
+                "mean_soc24_plan": s.get("mean_soc24_plan"),
+                "feb1_soc0": s.get("feb1_soc0"),
+                "load_mae_kw": s.get("load_mae_kw"),
+                "pv_mae_kw": s.get("pv_mae_kw"),
+                "soc_mu": s.get("soc_mu"),
+                "dispatch": s.get("dispatch"),
+                "q_load": s.get("q_load"),
+                "q_pv": s.get("q_pv"),
+                "pv_source": s.get("pv_source"),
+                "mpc_stride": s.get("mpc_stride"),
+                "elapsed_s": s.get("elapsed_s"),
+            }
+        )
+    frame = pd.DataFrame(rows)
+    frame.to_csv(path, index=False, encoding="utf-8-sig")
+    (path.parent / "v1_anchor.json").write_text(json.dumps(anchor, ensure_ascii=False, indent=2), encoding="utf-8")
+    if selected:
+        (path.parent / "selected_config.json").write_text(
+            json.dumps(selected, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
+
+def select_official_config(summaries: list[dict], configs: list[dict]) -> dict:
+    v1 = next(s for s in summaries if s["policy"] == "V1")
+    non_v1 = [s for s in summaries if s["policy"] != "V1"]
+    improved = [
+        s
+        for s in non_v1
+        if s["total_cost"] < v1["total_cost"] and s["emergency_cost"] < v1["emergency_cost"]
+    ]
+    pool = improved if improved else non_v1
+    best = min(pool, key=lambda s: (s["total_cost"], s["emergency_cost"]))
+    cfg = next(c for c in configs if c["name"] == best["policy"])
+    selected = dict(cfg)
+    selected["phase1_total_cost"] = best["total_cost"]
+    selected["phase1_emergency_cost"] = best["emergency_cost"]
+    selected["phase1_vs_v1_total"] = best["total_cost"] - v1["total_cost"]
+    selected["mpc_stride"] = best.get("mpc_stride")
+    selected["v1_phase1_total_cost"] = v1["total_cost"]
+    selected["improved_on_phase1"] = bool(improved)
+    return selected
+
+
+def run_oracle_phase1(prices: pd.DataFrame, year: dict, start_idx: int, end_idx: int) -> dict:
+    price = prices["price"].to_numpy(dtype=float)
+    official_start = pd.Timestamp(OFFICIAL_START)
+    soc = E0_JAN1_KWH
+    rows = []
+    t0 = time.perf_counter()
+    for day in range(start_idx, end_idx + 1):
+        load = year["load_kwh"][day]
+        pv = year["pv_kwh"][day]
+        plan = solve_day_lp(price, load, pv, soc, soc_mu=0.0)
+        actual = simulate_day_mpc(price, load, pv, load, pv, plan["purchase_kwh"], soc, soc_mu=0.0, stride=1)
+        stamp = pd.Timestamp(year["dates"].iloc[day])
+        rows.append(
+            {
+                "date": str(stamp.date()),
+                "official": bool(stamp >= official_start),
+                "total_cost": float(actual["plan_cost"] + actual["emergency_cost"]),
+                "plan_cost": float(actual["plan_cost"]),
+                "emergency_cost": float(actual["emergency_cost"]),
+                "emergency_kwh": float(actual["emergency_kwh"].sum()),
+                "soc24_actual": float(actual["soc24_kwh"]),
+            }
+        )
+        soc = float(actual["soc24_kwh"])
+    daily = pd.DataFrame(rows)
+    official = daily[daily["official"]]
+    return {
+        "policy": "oracle_actuals",
+        "n_official_days": int(len(official)),
+        "total_cost": float(official["total_cost"].sum()),
+        "plan_cost": float(official["plan_cost"].sum()),
+        "emergency_cost": float(official["emergency_cost"].sum()),
+        "emergency_kwh": float(official["emergency_kwh"].sum()),
+        "mean_soc24_actual": float(official["soc24_actual"].mean()),
+        "elapsed_s": time.perf_counter() - t0,
+        "note": "perfect-information lower bound; not an official score",
+    }
+
+
+def prepare_forecast_bank(
+    prices: pd.DataFrame,
+    year: dict,
+    start_idx: int,
+    end_idx: int,
+    load_panel: pd.DataFrame,
+    pv_panel: pd.DataFrame,
+) -> dict:
+    cache: dict = {}
+    xgb, t_xgb = collect_forecasts(
+        "xgb_expanding", prices, year, start_idx, end_idx, load_panel, pv_panel, cache=cache, pv_source="model"
+    )
+    hyb, t_hyb = collect_forecasts(
+        "xgb_expanding",
+        prices,
+        year,
+        start_idx,
+        end_idx,
+        load_panel,
+        pv_panel,
+        cache=cache,
+        pv_source="baseline_7d",
+    )
+    print(f"forecast bank xgb={t_xgb:.1f}s hybrid={t_hyb:.1f}s", flush=True)
+    return {"model": xgb, "model_s": t_xgb, "baseline_7d": hyb, "baseline_7d_s": t_hyb}
+
+
+def run_opt(args) -> None:
+    copy_raw_inputs()
+    prices = load_prices()
+    year = load_year_actuals()
+    audit_data(prices, year)
+    dates = year["dates"]
+    end_date = pd.Timestamp(OFFICIAL_END if args.full else (args.end_date or PHASE1_END))
+    end_idx = int(np.where(pd.to_datetime(dates) == end_date)[0][0])
+    start_idx = 0
+    print("precomputing causal feature panels...", flush=True)
+    load_panel = precompute_panel(year["load_kw"], dates)
+    pv_panel = precompute_panel(year["pv_kw"], dates)
+    OPT_DIR.mkdir(parents=True, exist_ok=True)
+    bank = prepare_forecast_bank(prices, year, start_idx, end_idx, load_panel, pv_panel)
+    mpc_stride = choose_mpc_stride(prices, year, bank["baseline_7d"])
+
+    if args.phase1_tune or not args.full:
+        configs = list(PHASE1_TUNE_CONFIGS)
+        summaries = []
+        for cfg in configs:
+            print("opt phase1", cfg["name"], flush=True)
+            result = run_policy(cfg, prices, year, start_idx, end_idx, load_panel, pv_panel, bank, mpc_stride)
+            if result["summary"]["n_validation_errors"]:
+                raise RuntimeError(f"{cfg['name']} failed: {result['summary']['validation_errors_head']}")
+            result["daily"].to_csv(OPT_DIR / f"phase1_daily_{cfg['name']}.csv", index=False, encoding="utf-8-sig")
+            (OPT_DIR / f"phase1_summary_{cfg['name']}.json").write_text(
+                json.dumps(result["summary"], ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            summaries.append(result["summary"])
+            print(json.dumps(result["summary"], ensure_ascii=False), flush=True)
+        v1 = next(s for s in summaries if s["policy"] == "V1")
+        v2_like = [s for s in summaries if s["policy"].startswith("V2") or s["policy"].startswith("C_")]
+        if v2_like and not (min(v2_like, key=lambda s: s["emergency_cost"])["emergency_cost"] < v1["emergency_cost"]):
+            print("V2 q=0.8/0.2 emergency did not drop; adding q=0.7/0.3", flush=True)
+            cfg = EXTRA_QUANTILE_CONFIG
+            configs.append(cfg)
+            result = run_policy(cfg, prices, year, start_idx, end_idx, load_panel, pv_panel, bank, mpc_stride)
+            result["daily"].to_csv(OPT_DIR / f"phase1_daily_{cfg['name']}.csv", index=False, encoding="utf-8-sig")
+            (OPT_DIR / f"phase1_summary_{cfg['name']}.json").write_text(
+                json.dumps(result["summary"], ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            summaries.append(result["summary"])
+        oracle = run_oracle_phase1(prices, year, start_idx, end_idx)
+        (OPT_DIR / "phase1_oracle.json").write_text(json.dumps(oracle, ensure_ascii=False, indent=2), encoding="utf-8")
+        selected = select_official_config(summaries, configs)
+        selected["mpc_stride"] = mpc_stride
+        pd.DataFrame(summaries + [oracle]).to_csv(OPT_DIR / "phase1_ablation.csv", index=False, encoding="utf-8-sig")
+        write_opt_comparison(summaries, selected, OPT_DIR / "phase1_comparison.csv")
+        print("selected", json.dumps(selected, ensure_ascii=False), flush=True)
+        if not args.full:
+            return
+    else:
+        selected_path = OPT_DIR / "selected_config.json"
+        if not selected_path.exists():
+            raise SystemExit("missing results/Q2/opt/selected_config.json; run --phase1-tune first")
+        selected = json.loads(selected_path.read_text(encoding="utf-8"))
+        mpc_stride = int(selected.get("mpc_stride") or mpc_stride)
+
+    print("opt full year", selected["name"], flush=True)
+    result = run_policy(selected, prices, year, start_idx, end_idx, load_panel, pv_panel, bank, mpc_stride)
+    if result["summary"]["n_validation_errors"]:
+        raise RuntimeError(f"full V2 failed: {result['summary']['validation_errors_head']}")
+    result["daily"].to_csv(OPT_DIR / "daily_v2.csv", index=False, encoding="utf-8-sig")
+    (OPT_DIR / "full_year_summary.json").write_text(
+        json.dumps(result["summary"], ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    anchor = _load_v1_anchor()
+    comparison = pd.DataFrame(
+        [
+            {
+                "policy": "V1_xgb_expanding",
+                "total_cost": anchor["total_cost"],
+                "plan_cost": anchor["plan_cost"],
+                "emergency_cost": anchor["emergency_cost"],
+                "emergency_kwh": anchor["emergency_kwh"],
+                "mean_soc24_plan": anchor.get("mean_soc24_plan"),
+                "feb1_soc0": anchor.get("feb1_soc0"),
+                "source": "results/Q2/full_year/summary_xgb_expanding.json",
+            },
+            {
+                "policy": selected["name"],
+                "total_cost": result["summary"]["total_cost"],
+                "plan_cost": result["summary"]["plan_cost"],
+                "emergency_cost": result["summary"]["emergency_cost"],
+                "emergency_kwh": result["summary"]["emergency_kwh"],
+                "mean_soc24_actual": result["summary"]["mean_soc24_actual"],
+                "mean_soc24_plan": result["summary"]["mean_soc24_plan"],
+                "feb1_soc0": result["summary"]["feb1_soc0"],
+                "purchase_kwh": result["summary"]["purchase_kwh"],
+                "load_mae_kw": result["summary"]["load_mae_kw"],
+                "pv_mae_kw": result["summary"]["pv_mae_kw"],
+                "soc_mu": result["summary"]["soc_mu"],
+                "dispatch": result["summary"]["dispatch"],
+                "mpc_stride": result["summary"]["mpc_stride"],
+                "source": "results/Q2/opt/full_year_summary.json",
+            },
+        ]
+    )
+    comparison.to_csv(OPT_DIR / "comparison_v1_v2.csv", index=False, encoding="utf-8-sig")
+    print("wrote", OPT_DIR / "comparison_v1_v2.csv", flush=True)
+    print(json.dumps(result["summary"], ensure_ascii=False), flush=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--phase1", action="store_true")
     parser.add_argument("--full", action="store_true")
+    parser.add_argument("--opt", action="store_true")
+    parser.add_argument("--phase1-tune", action="store_true")
     parser.add_argument("--end-date", default=None)
     parser.add_argument("--skip-leakage", action="store_true")
     args = parser.parse_args()
+    if args.opt:
+        if not args.full and not args.phase1_tune:
+            args.phase1_tune = True
+        run_opt(args)
+        return
     if not args.full and not args.phase1:
         args.phase1 = True
     copy_raw_inputs()

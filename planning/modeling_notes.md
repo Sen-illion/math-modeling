@@ -113,7 +113,16 @@ E_0=E_{144}=6000
 
 **预测**：7 日同刻平均；XGBoost Expanding / Rolling-30 / Rolling-60。选模型看总购电费。
 
-**全年 2/1–12/31**：XGB-Expanding 总费用 15308596.59 元。数字以 `results/Q2/full_year/` 为准。
+**全年 2/1–12/31（V1）**：XGB-Expanding 总费用 15308596.59 元。数字以 `results/Q2/full_year/` 为准。
+
+### 问题二 V2（费用优化，本轮）
+
+信息不集与锁死计划购电不变。针对 V1「日前把 \(E_{24}\) 打到 1200 + 贪心回放把电提前放光」：
+
+- 负荷：XGB-Expanding；光伏：7 日同刻均值，再做成因分位保守净负荷。
+- 日前 LP：\(\min\sum\pi G-\mu E_{144}\)。
+- 回放：剩余时段 MPC，目标含 \(5\pi\) 虚拟紧急电与日末留电；\(G\) 仍锁死。
+- 数字以 `results/Q2/opt/` 为准，不覆盖 `full_year/`。
 
 ---
 
@@ -130,4 +139,4 @@ E_0=E_{144}=6000
 | 2026-09-10 | Q2 | 跨日实际 SOC；日前无日末惩罚；XGB 与 7 日均值对照 | 0:00 不用当天真值；运行窗 1200–10800 | Expanding 全年总费用 15308596.59 元 | `task/q2-forecast-lp-soc` |
 
 当前 Q1 工作分支：`cursor/q1-deterministic-lp-9bb4`。PR：https://github.com/Sen-illion/math-modeling/pull/1 。
-当前 Q2 工作分支：`task/q2-forecast-lp-soc`。
+当前 Q2 工作分支：`task/q2-forecast-lp-soc`。V2 优化在 `cursor/q2-cost-opt-db1b`。

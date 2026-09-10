@@ -27,9 +27,21 @@ OFFICIAL_START = "2025-02-01"
 OFFICIAL_END = "2025-12-31"
 PHASE1_END = "2025-02-14"
 
-# Official Q2 keeps no end-of-day SOC value in the day-ahead LP.
+# Official Q2 V1 keeps no end-of-day SOC value in the day-ahead LP.
 TERMINAL_TARGET_KWH = 6000.0
 TERMINAL_LAMBDA = 0.0
+
+# V2: leftover-SOC credit in day-ahead / remaining-horizon LP (yuan per kWh).
+# This rewards keeping energy, unlike the discarded |E-6000| penalty.
+SOC_MU = 0.25
+LOAD_QUANTILE = 0.8
+PV_QUANTILE = 0.2
+PV_SOURCE_V2 = "baseline_7d"
+DISPATCH_MODE = "mpc"
+MPC_STRIDE = 1
+MPC_STRIDE_FALLBACK = 6
+PHASE1_MPC_BUDGET_S = 180.0
+REMAINING_LP_TIME_LIMIT_S = 8
 
 XGB_PARAMS = {
     "n_estimators": 200,
@@ -69,4 +81,5 @@ CLEAN_DIR = REPO_ROOT / "data_clean" / "Q2"
 RESULT_DIR = REPO_ROOT / "results" / "Q2"
 PHASE1_DIR = RESULT_DIR / "phase1"
 FULL_DIR = RESULT_DIR / "full_year"
+OPT_DIR = RESULT_DIR / "opt"
 LOG_DIR = RESULT_DIR / "logs"
