@@ -1,5 +1,7 @@
 # Q1 确定性购电：建模—代码—执行计划
 
+协作记录、共同假设与论文可写细节见 [`modeling_notes.md`](modeling_notes.md)。
+
 状态：已按微网接口 5000 kW 口径修订
 适用问题：2026 国赛 C 题第一问
 工作分支：`cursor/q1-deterministic-lp-9bb4`（不直接提交 `main`）
