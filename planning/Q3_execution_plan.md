@@ -1,6 +1,6 @@
 # Q3 滚动购电：建模—代码—执行计划
 
-状态：方法口径已冻结，代码与结果尚未开始
+状态：口径已按阶段 1 证据修订（去掉展望、补 N0、收紧选择门）
 适用问题：2026 国赛 C 题第三问
 工作分支：`task/q3-rolling-lp`（不直接提交 `main`）
 依赖：当前 Q2 交流侧储能核与因果回放（物理等价于 Q1 接口 5000 kW）
@@ -23,12 +23,13 @@
    \]
    回放缺口紧急购电 \(5\pi_t G^{\mathrm{em}}_t\)。总费用 = 上式 + 紧急费。
 8. **回放**：与 Q2 相同。锁死当天最终合同 \(G^{\mathrm{adj}}\)，单时段因果充放，紧急电不充电。
-9. **正式模型 M0**：分窗光伏余量 + 24 h 展望 + 选择性更新。
-   - \(\beta_{\mathrm{lock}}=1.0\)，\(\beta_{\mathrm{open}}=0.2\)
-   - \(\sigma\) 用该日之前同钟点、同提前量的预报误差标准差；样本少于 3 则 \(\sigma=0\)
-   - 展望段属于次日，不写入当天调整合同
-   - 日末软跟踪 \(E_{24}\approx 6000\)，\(\lambda=0.4\) 元/kWh
-   - 仅当 \(C^{\mathrm{adj}}<(1-\varepsilon)C^{\mathrm{keep}}\) 才改合同，\(\varepsilon=0.01\)
+9. **正式候选**（阶段 1 已证明 24 h 展望会抬高总费用，正式模型不再用展望、不再软跟踪 \(E_{24}\)）：
+   - **N0**：0:00 用余量排计划，日内**不改合同**（\(G^{\mathrm{adj}}=G^{\mathrm{plan}}\)）。这是回答「是否需要其他时刻预报」的对照。
+   - **M1**：余量 + 6/12/18 每次都调剩余合同。
+   - **M0**：余量 + 选择性更新。仅当剩余时段光伏预报相对 0:00 的 L1 电量 \(\ge 3000\) kWh，且当天剩余 LP 目标 \(C^{\mathrm{adj}}<(1-\varepsilon)C^{\mathrm{keep}}\) 才改，\(\varepsilon=0.03\)。比较只用当天剩余时段，不含展望。
+   - \(\beta_{\mathrm{lock}}=1.0\)，\(\beta_{\mathrm{open}}=0.2\)；\(\sigma\) 只用过去日。
+   - **M2**（只作阶段 1 消融）：余量 + 展望 + 每次都调，不作正式结果。
+   - `result3.xlsx` 冻结为 N0/M1/M0 中全年总费用最低者。
 10. **填表**：`result3.xlsx` 按列序与附件 2 的 144 列对齐。计划表「全天购电费」= \(\sum\pi G^{\mathrm{plan}}\)；调整表「全天购电费」= 偏差结算 + 紧急费。充放电与紧急购电按 334 天展开。
 
 ## 1. 目录与产物
@@ -62,7 +63,7 @@ results/Q3/
 
 ## 2. 一次滚动 LP
 
-决策时刻 \(\tau\in\{0,6,12,18\}\) 点。从 \(\tau\) 之后第一个 10 分钟时段起，优化窗覆盖附件 3 的未来 24 小时（144 个时段）。其中属于当天的写入合同，属于次日的只参与 SOC。
+决策时刻 \(\tau\in\{0,6,12,18\}\) 点。正式模型只优化**当天剩余**时段；M2 消融才把预报窗延到次日。
 
 光伏：
 
@@ -91,13 +92,14 @@ E_t=E_{t-1}+0.9 c_t-d_t/0.9,\quad
 
 阶段 1（1/1–2/14，评价 2/1–2/14）必须跑：
 
-- B0：点预报、每次都调、无余量、无展望
-- M1：只加分窗余量
-- M2：余量 + 24 h 展望
-- M0：A+B+C（正式）
-- 先知：用当天实测做日前 LP，不调整
+- N0：余量、0:00 计划锁死全天
+- B0：点预报、每次都调、无余量
+- M1：余量、每次都调
+- M2：余量 + 24 h 展望（消融）
+- M0：余量 + 选择门
+- 先知：当天实测日前 LP
 
-全年正式只冻结 M0 的 `result3.xlsx`。
+全年跑 N0/M1/M0，`result3.xlsx` 取总费用最低者。
 
 ## 4. 执行顺序
 
@@ -135,14 +137,16 @@ E_t=E_{t-1}+0.9 c_t-d_t/0.9,\quad
 
 ## 5. 提交切分
 
-1. `method(Q3): freeze rolling LP with buffer and selective update`
-2. `code(Q3): add rolling forecast-adjust-playback pipeline`
-3. `results(Q3): add verified result3 and specified-day tables`
+修订提交（相对第一版）：
+
+1. `method(Q3): drop look-ahead and add no-adjust baseline`
+2. `code(Q3): revise rolling policies N0/M1/M0`
+3. `results(Q3): refresh result3 from cheapest official policy`
 
 ## 6. 完成定义
 
-- [ ] 口径已写入本文件和 `modeling_notes.md`
+- [x] 口径已写入本文件和 `modeling_notes.md`
 - [ ] `python code/Q3/run_q3.py --phase official` 可复现
 - [ ] `results/Q3/result3.xlsx` 通过阶段 E
-- [ ] `metrics.json` 含 B0/M1/M2/M0/先知的阶段 1 费用，以及 M0 全年总费用
+- [ ] `metrics.json` 含 N0/B0/M1/M2/M0/先知的阶段 1 费用，以及 N0/M1/M0 全年总费用和正式赢家
 - [ ] 方法、代码、结果已按切分提交（未推送不得称完成）
