@@ -1,7 +1,7 @@
 {
   "phase": "official",
-  "created_at": "2026-09-10T15:22:33.548585+00:00",
-  "elapsed_s": 200.1792215000005,
+  "created_at": "2026-09-10T16:09:14.237514+00:00",
+  "elapsed_s": 243.62683379999726,
   "start_day": 31,
   "end_day": 365,
   "inputs": {
@@ -33,17 +33,42 @@
     "dt_hours": 0.16666666666666666
   },
   "metrics": {
-    "M0": {
+    "N0": {
       "n_days": 334,
-      "total_cost": 13958768.526675126,
-      "plan_only_cost": 11784712.929316824,
-      "emergency_cost": 309252.4024112387,
-      "emergency_kwh": 53943.50357845811,
-      "adj_purchase_kwh": 20842073.359440614,
-      "n_days_with_intraday_adjust": 334,
-      "elapsed_s": 196.9918114000011,
+      "total_cost": 15122383.531377897,
+      "plan_only_cost": 12508178.19648644,
+      "emergency_cost": 2614205.3348914566,
+      "emergency_kwh": 454772.8231319627,
+      "adj_purchase_kwh": 20573835.090613574,
+      "n_days_with_intraday_adjust": 0,
+      "elapsed_s": 33.12936180000179,
       "leakage_errors": [],
       "gate_errors": []
-    }
+    },
+    "M1": {
+      "n_days": 334,
+      "total_cost": 13670359.912618522,
+      "plan_only_cost": 12508925.741865773,
+      "emergency_cost": 389322.47566027177,
+      "emergency_kwh": 87248.94294199464,
+      "adj_purchase_kwh": 20761242.6957806,
+      "n_days_with_intraday_adjust": 334,
+      "elapsed_s": 122.0210318999998,
+      "leakage_errors": [],
+      "gate_errors": []
+    },
+    "M0": {
+      "n_days": 334,
+      "total_cost": 14311789.074730055,
+      "plan_only_cost": 12516913.517093018,
+      "emergency_cost": 1227833.3319781832,
+      "emergency_kwh": 222173.84222442188,
+      "adj_purchase_kwh": 20742591.403236937,
+      "n_days_with_intraday_adjust": 262,
+      "elapsed_s": 83.71587999999974,
+      "leakage_errors": [],
+      "gate_errors": []
+    },
+    "official_winner": "M1"
   }
 }

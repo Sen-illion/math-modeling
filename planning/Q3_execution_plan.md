@@ -146,7 +146,7 @@ E_t=E_{t-1}+0.9 c_t-d_t/0.9,\quad
 ## 6. 完成定义
 
 - [x] 口径已写入本文件和 `modeling_notes.md`
-- [ ] `python code/Q3/run_q3.py --phase official` 可复现
-- [ ] `results/Q3/result3.xlsx` 通过阶段 E
-- [ ] `metrics.json` 含 N0/B0/M1/M2/M0/先知的阶段 1 费用，以及 N0/M1/M0 全年总费用和正式赢家
+- [x] `python code/Q3/run_q3.py --phase official` 可复现
+- [x] `results/Q3/result3.xlsx` 通过阶段 E
+- [x] `metrics.json` 含 N0/B0/M1/M2/M0/先知的阶段 1 费用，以及 N0/M1/M0 全年总费用和正式赢家
 - [ ] 方法、代码、结果已按切分提交（未推送不得称完成）
