@@ -5,10 +5,10 @@
   "q_pv": 0.2,
   "soc_mu": 0.0,
   "dispatch": "greedy",
-  "phase1_total_cost": 647799.8500417834,
+  "phase1_total_cost": 646140.9138376154,
   "phase1_emergency_cost": 182.2726691736679,
-  "phase1_vs_v1_total": -13339.32706841547,
+  "phase1_vs_v1_total": -12804.170198173495,
   "mpc_stride": 1,
-  "v1_phase1_total_cost": 661139.1771101989,
+  "v1_phase1_total_cost": 658945.0840357889,
   "improved_on_phase1": true
 }
