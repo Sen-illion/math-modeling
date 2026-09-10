@@ -1,0 +1,10 @@
+{
+  "n_official_days": 334,
+  "n_emergency_periods": 214,
+  "emergency_kwh": 71414.67347842993,
+  "purchase_kwh": 21578964.370669328,
+  "plan_cost": 13211475.242407648,
+  "feb1_soc0": 6000.0,
+  "last_soc24": 1641.6615215555569,
+  "path": "/workspace/results/Q2/result2.xlsx"
+}

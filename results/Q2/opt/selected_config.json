@@ -1,0 +1,14 @@
+{
+  "name": "C_pv7d_q82",
+  "pv_source": "baseline_7d",
+  "q_load": 0.8,
+  "q_pv": 0.2,
+  "soc_mu": 0.0,
+  "dispatch": "greedy",
+  "phase1_total_cost": 646140.9138376154,
+  "phase1_emergency_cost": 182.2726691736679,
+  "phase1_vs_v1_total": -12804.170198173495,
+  "mpc_stride": 1,
+  "v1_phase1_total_cost": 658945.0840357889,
+  "improved_on_phase1": true
+}
