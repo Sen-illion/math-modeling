@@ -641,11 +641,18 @@ def run_opt(args) -> None:
     (OPT_DIR / "full_year_summary.json").write_text(
         json.dumps(result["summary"], ensure_ascii=False, indent=2), encoding="utf-8"
     )
+    v1_cfg = next(c for c in PHASE1_TUNE_CONFIGS if c["name"] == "V1")
+    print("opt full year same-stack V1", flush=True)
+    v1_result = run_policy(v1_cfg, prices, year, start_idx, end_idx, load_panel, pv_panel, bank, mpc_stride)
+    v1_result["daily"].to_csv(OPT_DIR / "daily_v1_samestack.csv", index=False, encoding="utf-8-sig")
+    (OPT_DIR / "full_year_summary_v1_samestack.json").write_text(
+        json.dumps(v1_result["summary"], ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     anchor = _load_v1_anchor()
     comparison = pd.DataFrame(
         [
             {
-                "policy": "V1_xgb_expanding",
+                "policy": "V1_repo_anchor",
                 "total_cost": anchor["total_cost"],
                 "plan_cost": anchor["plan_cost"],
                 "emergency_cost": anchor["emergency_cost"],
@@ -653,6 +660,20 @@ def run_opt(args) -> None:
                 "mean_soc24_plan": anchor.get("mean_soc24_plan"),
                 "feb1_soc0": anchor.get("feb1_soc0"),
                 "source": "results/Q2/full_year/summary_xgb_expanding.json",
+            },
+            {
+                "policy": "V1_samestack",
+                "total_cost": v1_result["summary"]["total_cost"],
+                "plan_cost": v1_result["summary"]["plan_cost"],
+                "emergency_cost": v1_result["summary"]["emergency_cost"],
+                "emergency_kwh": v1_result["summary"]["emergency_kwh"],
+                "mean_soc24_actual": v1_result["summary"]["mean_soc24_actual"],
+                "mean_soc24_plan": v1_result["summary"]["mean_soc24_plan"],
+                "feb1_soc0": v1_result["summary"]["feb1_soc0"],
+                "purchase_kwh": v1_result["summary"]["purchase_kwh"],
+                "load_mae_kw": v1_result["summary"]["load_mae_kw"],
+                "pv_mae_kw": v1_result["summary"]["pv_mae_kw"],
+                "source": "results/Q2/opt/full_year_summary_v1_samestack.json",
             },
             {
                 "policy": selected["name"],
@@ -669,6 +690,8 @@ def run_opt(args) -> None:
                 "soc_mu": result["summary"]["soc_mu"],
                 "dispatch": result["summary"]["dispatch"],
                 "mpc_stride": result["summary"]["mpc_stride"],
+                "q_load": result["summary"].get("q_load"),
+                "q_pv": result["summary"].get("q_pv"),
                 "source": "results/Q2/opt/full_year_summary.json",
             },
         ]

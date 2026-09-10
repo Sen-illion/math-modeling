@@ -1,0 +1,11 @@
+{
+  "policy": "oracle_actuals",
+  "n_official_days": 14,
+  "total_cost": 588024.6536147752,
+  "plan_cost": 588024.6443732494,
+  "emergency_cost": 0.009241525841135493,
+  "emergency_kwh": 0.0023081531235289617,
+  "mean_soc24_actual": 1200.0000093068795,
+  "elapsed_s": 20.296001006999973,
+  "note": "perfect-information lower bound; not an official score"
+}
