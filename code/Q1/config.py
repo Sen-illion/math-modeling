@@ -12,7 +12,10 @@ E_MAX_KWH = 10800.0
 E0_KWH = 6000.0
 P_MAX_KW = 5000.0
 ETA = 0.9
+# 5000 kW is the storage–microgrid interface (PCS) rating, not battery dE/dt.
 P_MAX_KWH = P_MAX_KW * DT_HOURS
+P_MAX_CHARGE_BATT_KWH = P_MAX_KWH * ETA
+P_MAX_DISCHARGE_BATT_KWH = P_MAX_KWH / ETA
 
 ABS_TOL_KWH = 1e-3
 REL_TOL = 1e-4

@@ -7,6 +7,7 @@ import pandas as pd
 
 from config import (
     ABS_TOL_KWH,
+    DT_HOURS,
     E0_KWH,
     E_MAX_KWH,
     E_MIN_KWH,
@@ -46,8 +47,12 @@ def validate_dispatch(frame: pd.DataFrame, dispatch: dict, require_cost_below_b0
             errors.append(f"t={t+1} SOC {soc[t]:.4f} outside [{E_MIN_KWH}, {E_MAX_KWH}]")
         if charge[t] < -ABS_TOL_KWH or discharge[t] < -ABS_TOL_KWH or purchase[t] < -ABS_TOL_KWH:
             errors.append(f"t={t+1} negative purchase/charge/discharge")
-        if charge[t] > P_MAX_KWH + ABS_TOL_KWH or discharge[t] > P_MAX_KWH + ABS_TOL_KWH:
-            errors.append(f"t={t+1} charge/discharge exceeds {P_MAX_KWH:.4f} kWh")
+        ac_charge = charge[t] / ETA
+        ac_discharge = ETA * discharge[t]
+        if ac_charge > P_MAX_KWH + ABS_TOL_KWH or ac_discharge > P_MAX_KWH + ABS_TOL_KWH:
+            errors.append(
+                f"t={t+1} interface charge/discharge {max(ac_charge, ac_discharge):.4f} kWh exceeds {P_MAX_KWH:.4f} kWh"
+            )
         if charge[t] * discharge[t] > 1e-4:
             errors.append(f"t={t+1} simultaneous charge and discharge")
         soc_prev = soc[t]
@@ -69,13 +74,17 @@ def validate_dispatch(frame: pd.DataFrame, dispatch: dict, require_cost_below_b0
 
 def summarize(frame: pd.DataFrame, dispatch: dict, name: str) -> dict:
     purchase = np.asarray(dispatch["purchase_kwh"], dtype=float)
+    charge = np.asarray(dispatch["charge_kwh"], dtype=float)
+    discharge = np.asarray(dispatch["discharge_kwh"], dtype=float)
     return {
         "name": name,
         "purchase_kwh": float(purchase.sum()),
         "cost": float(np.dot(frame["price"].to_numpy(), purchase)),
-        "charge_kwh": float(np.asarray(dispatch["charge_kwh"]).sum()),
-        "discharge_kwh": float(np.asarray(dispatch["discharge_kwh"]).sum()),
+        "charge_kwh": float(charge.sum()),
+        "discharge_kwh": float(discharge.sum()),
         "curtail_kwh": float(np.asarray(dispatch["curtail_kwh"]).sum()),
         "soc0_kwh": E0_KWH,
         "soc24_kwh": float(dispatch["soc_end_kwh"][-1]),
+        "max_interface_charge_kw": float(np.max(charge / ETA) / DT_HOURS) if len(charge) else 0.0,
+        "max_interface_discharge_kw": float(np.max(ETA * discharge) / DT_HOURS) if len(discharge) else 0.0,
     }

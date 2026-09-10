@@ -5,7 +5,14 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from config import E0_KWH, E_MAX_KWH, E_MIN_KWH, ETA, P_MAX_KWH
+from config import (
+    E0_KWH,
+    E_MAX_KWH,
+    E_MIN_KWH,
+    ETA,
+    P_MAX_CHARGE_BATT_KWH,
+    P_MAX_DISCHARGE_BATT_KWH,
+)
 
 
 def _empty_result(n: int) -> dict[str, np.ndarray]:
@@ -42,8 +49,8 @@ def baseline_tou_greedy(frame: pd.DataFrame) -> dict[str, np.ndarray]:
     for t in range(n):
         surplus = max(pv[t] - load[t], 0.0)
         deficit = max(load[t] - pv[t], 0.0)
-        charge_cap = min(P_MAX_KWH, E_MAX_KWH - soc)
-        discharge_cap = min(P_MAX_KWH, soc - E_MIN_KWH)
+        charge_cap = min(P_MAX_CHARGE_BATT_KWH, E_MAX_KWH - soc)
+        discharge_cap = min(P_MAX_DISCHARGE_BATT_KWH, soc - E_MIN_KWH)
 
         charge = 0.0
         discharge = 0.0
@@ -98,7 +105,7 @@ def _restore_cyclic_soc(frame: pd.DataFrame, result: dict[str, np.ndarray]) -> N
         if need <= 1e-9:
             break
         if gap < 0:
-            room = min(P_MAX_KWH - result["charge_kwh"][t], E_MAX_KWH - soc[t + 1], need)
+            room = min(P_MAX_CHARGE_BATT_KWH - result["charge_kwh"][t], E_MAX_KWH - soc[t + 1], need)
             room = max(room, 0.0)
             if room <= 0 or result["discharge_kwh"][t] > 1e-9:
                 continue
@@ -107,7 +114,7 @@ def _restore_cyclic_soc(frame: pd.DataFrame, result: dict[str, np.ndarray]) -> N
             need -= room
             soc[t + 1 :] += room
         else:
-            room = min(P_MAX_KWH - result["discharge_kwh"][t], soc[t] - E_MIN_KWH, need)
+            room = min(P_MAX_DISCHARGE_BATT_KWH - result["discharge_kwh"][t], soc[t] - E_MIN_KWH, need)
             room = max(room, 0.0)
             replace = min(result["purchase_kwh"][t], ETA * room)
             extra_discharge = replace / ETA if ETA > 0 else 0.0

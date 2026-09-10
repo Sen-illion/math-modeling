@@ -11,6 +11,8 @@ from config import (
     E_MAX_KWH,
     E_MIN_KWH,
     ETA,
+    P_MAX_CHARGE_BATT_KWH,
+    P_MAX_DISCHARGE_BATT_KWH,
     P_MAX_KWH,
     SOLVER_TIME_LIMIT_S,
 )
@@ -24,8 +26,8 @@ def solve_lp(frame: pd.DataFrame) -> dict:
 
     prob = pulp.LpProblem("q1_planned_purchase", pulp.LpMinimize)
     G = [pulp.LpVariable(f"G_{t}", lowBound=0) for t in range(n)]
-    c = [pulp.LpVariable(f"c_{t}", lowBound=0, upBound=P_MAX_KWH) for t in range(n)]
-    d = [pulp.LpVariable(f"d_{t}", lowBound=0, upBound=P_MAX_KWH) for t in range(n)]
+    c = [pulp.LpVariable(f"c_{t}", lowBound=0, upBound=P_MAX_CHARGE_BATT_KWH) for t in range(n)]
+    d = [pulp.LpVariable(f"d_{t}", lowBound=0, upBound=P_MAX_DISCHARGE_BATT_KWH) for t in range(n)]
     w = [pulp.LpVariable(f"w_{t}", lowBound=0) for t in range(n)]
     E = [pulp.LpVariable(f"E_{t}", lowBound=E_MIN_KWH, upBound=E_MAX_KWH) for t in range(n)]
 
@@ -35,6 +37,9 @@ def solve_lp(frame: pd.DataFrame) -> dict:
         prev = E0_KWH if t == 0 else E[t - 1]
         prob += E[t] == prev + c[t] - d[t]
         prob += G[t] + pv[t] + ETA * d[t] == load[t] + c[t] / ETA + w[t]
+        # Interface power: AC charge c/η and AC discharge ηd cannot exceed 5000 kW.
+        prob += c[t] / ETA <= P_MAX_KWH
+        prob += ETA * d[t] <= P_MAX_KWH
     prob += E[n - 1] == E0_KWH
 
     status = prob.solve(pulp.PULP_CBC_CMD(msg=False, timeLimit=SOLVER_TIME_LIMIT_S))

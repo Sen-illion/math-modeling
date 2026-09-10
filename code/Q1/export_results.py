@@ -41,6 +41,10 @@ def export_result1(frame: pd.DataFrame, dispatch: dict, dest: Path | None = None
             f"template purchase rows {purchase_sheet.max_row - 1} != dispatch length {len(purchase)}"
         )
     for i, value in enumerate(purchase, start=2):
+        idx = i - 2
+        start_label = str(frame.loc[idx, "t_start"])
+        end_label = str(frame.loc[idx, "t_end"])
+        purchase_sheet.cell(i, 1).value = f"{start_label}-{end_label}"
         purchase_sheet.cell(i, 2).value = float(value)
 
     charge_blocks = _block_sums(frame, np.asarray(dispatch["charge_kwh"], dtype=float))

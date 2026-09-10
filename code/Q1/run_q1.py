@@ -91,6 +91,7 @@ def main() -> int:
         "solver": lp["solver"],
         "status": lp["status"],
         "elapsed_s": elapsed,
+        "power_limit": "microgrid_interface_5000kW",
         "inputs": {
             "attachment1": str(ATTACHMENT1_XLSX),
             "attachment1_sha256": _sha256(ATTACHMENT1_XLSX),
