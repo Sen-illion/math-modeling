@@ -37,6 +37,7 @@ from config import (  # noqa: E402
     PHASE1_MPC_BUDGET_S,
     REPO_ROOT,
     RESULT2_TEMPLATE_XLSX,
+    RESULT2_XLSX,
     RESULT_DIR,
     SIM_START,
     TERMINAL_LAMBDA,
@@ -47,6 +48,7 @@ from forecast import apply_conservative_bias, precompute_panel, predict_day  # n
 from leakage import run_leakage_suite  # noqa: E402
 from load_data import audit_data, load_prices, load_year_actuals, write_clean  # noqa: E402
 from model_lp import solve_day_lp, validate_plan  # noqa: E402
+from export_results import export_result2, export_specified_day_tables  # noqa: E402
 from simulate import simulate_day, simulate_day_mpc, validate_actual  # noqa: E402
 
 
@@ -166,6 +168,7 @@ def run_model(
     dispatch: str = "greedy",
     mpc_stride: int = 1,
     policy_name: str | None = None,
+    collect_traces: bool = False,
 ) -> dict:
     if forecasts is None:
         forecasts, forecast_s = collect_forecasts(
@@ -175,6 +178,7 @@ def run_model(
     sim_start = pd.Timestamp(SIM_START)
     soc_actual = E0_FEB1_KWH
     rows = []
+    traces: list[dict] = []
     t0 = time.perf_counter()
     n_simultaneous = 0
     all_errors: list[str] = []
@@ -246,6 +250,20 @@ def run_model(
             }
         )
         soc_actual = float(actual["soc24_kwh"])
+        if collect_traces:
+            traces.append(
+                {
+                    "date": pred["date"],
+                    "purchase_kwh": np.asarray(plan["purchase_kwh"], dtype=float).copy(),
+                    "charge_kwh": np.asarray(actual["charge_kwh"], dtype=float).copy(),
+                    "discharge_kwh": np.asarray(actual["discharge_kwh"], dtype=float).copy(),
+                    "emergency_kwh": np.asarray(actual["emergency_kwh"], dtype=float).copy(),
+                    "soc0_kwh": float(rows[-1]["soc0_actual"]),
+                    "soc24_kwh": float(actual["soc24_kwh"]),
+                    "plan_cost": float(actual["plan_cost"]),
+                    "emergency_cost": float(actual["emergency_cost"]),
+                }
+            )
 
     elapsed = time.perf_counter() - t0 + forecast_s
     daily = pd.DataFrame(rows)
@@ -292,7 +310,10 @@ def run_model(
     }
     if summary["feb1_soc0"] is not None and abs(summary["feb1_soc0"] - E0_FEB1_KWH) > 1e-6:
         raise RuntimeError(f"Feb 1 00:00 SOC must be {E0_FEB1_KWH}, got {summary['feb1_soc0']}")
-    return {"daily": daily, "summary": summary}
+    out = {"daily": daily, "summary": summary}
+    if collect_traces:
+        out["traces"] = traces
+    return out
 
 
 def write_verification_report(audit: dict, leakage: dict, summaries: list[dict], out_path: Path) -> None:
@@ -432,6 +453,7 @@ def run_policy(
     pv_panel: pd.DataFrame,
     forecast_bank: dict,
     mpc_stride: int,
+    collect_traces: bool = False,
 ) -> dict:
     source = cfg["pv_source"]
     forecasts = forecast_bank[source]
@@ -452,6 +474,7 @@ def run_policy(
         dispatch=cfg["dispatch"],
         mpc_stride=mpc_stride,
         policy_name=cfg["name"],
+        collect_traces=collect_traces,
     )
     result["summary"]["q_load"] = cfg["q_load"]
     result["summary"]["q_pv"] = cfg["q_pv"]
@@ -714,6 +737,76 @@ def run_opt(args) -> None:
     print(json.dumps(result["summary"], ensure_ascii=False), flush=True)
 
 
+def _assert_matches_frozen(summary: dict) -> None:
+    frozen_path = OPT_DIR / "full_year_summary.json"
+    if not frozen_path.exists():
+        raise SystemExit("missing results/Q2/opt/full_year_summary.json; run --opt --full first")
+    frozen = json.loads(frozen_path.read_text(encoding="utf-8"))
+    keys = ("total_cost", "plan_cost", "emergency_cost", "emergency_kwh", "purchase_kwh", "feb1_soc0")
+    mismatches = []
+    for key in keys:
+        got = float(summary[key])
+        want = float(frozen[key])
+        scale = max(1.0, abs(want))
+        if abs(got - want) > max(1e-6, 1e-10 * scale):
+            mismatches.append(f"{key}: frozen {want} vs export {got}")
+    if mismatches:
+        raise RuntimeError("export replay does not match frozen V2 summary: " + "; ".join(mismatches))
+
+
+def run_export_result2() -> None:
+    copy_raw_inputs()
+    prices = load_prices()
+    year = load_year_actuals()
+    audit_data(prices, year)
+    selected_path = OPT_DIR / "selected_config.json"
+    if not selected_path.exists():
+        raise SystemExit("missing results/Q2/opt/selected_config.json; run --opt --phase1-tune first")
+    selected = json.loads(selected_path.read_text(encoding="utf-8"))
+    dates = year["dates"]
+    end_idx = int(np.where(pd.to_datetime(dates) == pd.Timestamp(OFFICIAL_END))[0][0])
+    start_idx = 0
+    print("precomputing causal feature panels...", flush=True)
+    load_panel = precompute_panel(year["load_kw"], dates)
+    pv_panel = precompute_panel(year["pv_kw"], dates)
+    print("forecast bank for result2 export", selected["name"], flush=True)
+    source = selected["pv_source"]
+    forecasts, forecast_s = collect_forecasts(
+        "xgb_expanding",
+        prices,
+        year,
+        start_idx,
+        end_idx,
+        load_panel,
+        pv_panel,
+        pv_source=source,
+    )
+    bank = {source: forecasts, f"{source}_s": forecast_s}
+    mpc_stride = int(selected.get("mpc_stride") or MPC_STRIDE)
+    print("replay frozen V2 with slot traces", flush=True)
+    result = run_policy(
+        selected,
+        prices,
+        year,
+        start_idx,
+        end_idx,
+        load_panel,
+        pv_panel,
+        bank,
+        mpc_stride,
+        collect_traces=True,
+    )
+    if result["summary"]["n_validation_errors"]:
+        raise RuntimeError(f"result2 replay failed: {result['summary']['validation_errors_head']}")
+    _assert_matches_frozen(result["summary"])
+    dest = export_result2(prices, result["traces"], RESULT2_XLSX)
+    table_paths = export_specified_day_tables(prices, result["traces"])
+    print("wrote", dest, flush=True)
+    for path in table_paths:
+        print("wrote", path, flush=True)
+    print(json.dumps(result["summary"], ensure_ascii=False), flush=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--phase1", action="store_true")
@@ -722,7 +815,11 @@ def main() -> None:
     parser.add_argument("--phase1-tune", action="store_true")
     parser.add_argument("--end-date", default=None)
     parser.add_argument("--skip-leakage", action="store_true")
+    parser.add_argument("--export-result2", action="store_true")
     args = parser.parse_args()
+    if args.export_result2:
+        run_export_result2()
+        return
     if args.opt:
         if not args.full and not args.phase1_tune:
             args.phase1_tune = True

@@ -79,9 +79,23 @@ MODEL_NAMES = ("baseline_7d", "xgb_expanding", "xgb_rolling30", "xgb_rolling60")
 ATTACHMENT1_XLSX = REPO_ROOT / "data_raw" / "Q2" / "attachment1.xlsx"
 ATTACHMENT2_XLSX = REPO_ROOT / "data_raw" / "Q2" / "attachment2.xlsx"
 RESULT2_TEMPLATE_XLSX = REPO_ROOT / "data_raw" / "Q2" / "result2_template.xlsx"
+RESULT2_XLSX = REPO_ROOT / "results" / "Q2" / "result2.xlsx"
 CLEAN_DIR = REPO_ROOT / "data_clean" / "Q2"
 RESULT_DIR = REPO_ROOT / "results" / "Q2"
 PHASE1_DIR = RESULT_DIR / "phase1"
 FULL_DIR = RESULT_DIR / "full_year"
 OPT_DIR = RESULT_DIR / "opt"
 LOG_DIR = RESULT_DIR / "logs"
+ASSET_TABLE_DIR = REPO_ROOT / "paper" / "assets" / "tables"
+
+# Paper Table 1 slots end at HH:10. Table 3 specified dates are from the problem statement.
+PAPER_TABLE1_END_MINUTES = (10 * 60 + 10, 12 * 60 + 10, 14 * 60 + 10, 16 * 60 + 10, 18 * 60 + 10, 20 * 60 + 10)
+SPECIFIED_DATES = ("2025-03-20", "2025-06-21", "2025-09-23", "2025-12-21")
+FOUR_HOUR_BLOCKS = (
+    (0, 4 * 60, "0:00-4:00"),
+    (4 * 60, 8 * 60, "4:00-8:00"),
+    (8 * 60, 12 * 60, "8:00-12:00"),
+    (12 * 60, 16 * 60, "12:00-16:00"),
+    (16 * 60, 20 * 60, "16:00-20:00"),
+    (20 * 60, 24 * 60, "20:00-24:00"),
+)
