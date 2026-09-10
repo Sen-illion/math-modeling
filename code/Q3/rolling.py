@@ -32,6 +32,8 @@ class Policy:
     selective: bool
     no_adjust: bool = False
     use_terminal: bool = False
+    one_sided: bool = False
+    adjust_hours: tuple[int, ...] = (6, 12, 18)
 
 
 POLICIES = {
@@ -40,6 +42,11 @@ POLICIES = {
     "M1": Policy("M1", use_buffer=True, look_ahead=False, selective=False),
     "M2": Policy("M2", use_buffer=True, look_ahead=True, selective=False, use_terminal=True),
     "M0": Policy("M0", use_buffer=True, look_ahead=False, selective=True),
+    "OS": Policy("OS", use_buffer=True, look_ahead=False, selective=False, one_sided=True),
+    "H6": Policy("H6", use_buffer=True, look_ahead=False, selective=False, adjust_hours=(6,)),
+    "H12": Policy("H12", use_buffer=True, look_ahead=False, selective=False, adjust_hours=(12,)),
+    "H18": Policy("H18", use_buffer=True, look_ahead=False, selective=False, adjust_hours=(18,)),
+    "H612": Policy("H612", use_buffer=True, look_ahead=False, selective=False, adjust_hours=(6, 12)),
 }
 
 
@@ -117,6 +124,26 @@ def run_day(
 
         if hour > 0 and policy.no_adjust:
             take_free = False
+        elif hour > 0 and hour not in policy.adjust_hours:
+            take_free = False
+        elif hour > 0 and policy.one_sided:
+            pv0_e = float(np.maximum(interp_kw[day, 0, start_slot : start_slot + n_today], 0.0).sum() * DT_HOURS)
+            pv_new_e = float(np.maximum(interp_kw[day, iss, :n_today], 0.0).sum() * DT_HOURS)
+            pv_l1 = pv_new_e - pv0_e
+            if pv_new_e >= pv0_e - 1e-6:
+                take_free = False
+            else:
+                free = solve_rolling_lp(
+                    price_h,
+                    load_kw_h * DT_HOURS,
+                    pv_h,
+                    soc,
+                    n_today=n_today,
+                    g_plan_today=plan_slice,
+                    lock_to_plan=False,
+                    terminal_lambda=term,
+                )
+                chosen = free
         elif hour > 0 and policy.selective:
             pv0 = interp_kw[day, 0, start_slot : start_slot + n_today]
             pv_l1 = float(np.abs(interp_kw[day, iss, :n_today] - pv0).sum() * DT_HOURS)

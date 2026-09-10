@@ -33,13 +33,10 @@ def leakage_errors(records: list[dict], load_kwh: np.ndarray, dates, typical_kw:
             continue
         expected = forecast_day_kw(load_kw, day, dates, typical_kw)
         if not np.allclose(rec["load_fc0_kw"], expected, atol=1e-8, rtol=0):
-            errors.append(f"day {day} load forecast mismatch vs causal week-lag")
+            errors.append(f"day {day} load forecast mismatch vs causal 0:00 model")
         if day >= 7:
-            src = load_kw[day - 7]
-            if not np.allclose(rec["load_fc0_kw"], src, atol=1e-8, rtol=0):
-                errors.append(f"day {day} 0:00 load forecast is not last-week same weekday")
             if np.allclose(rec["load_fc0_kw"], load_kw[day], atol=1e-12, rtol=0) and not np.allclose(
-                src, load_kw[day], atol=1e-12, rtol=0
+                load_kw[day - 7], load_kw[day], atol=1e-12, rtol=0
             ):
                 errors.append(f"day {day} 0:00 load forecast leaked today's actual")
         if rec["updates"][0]["hour"] != 0:

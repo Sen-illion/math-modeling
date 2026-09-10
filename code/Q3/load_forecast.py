@@ -38,11 +38,15 @@ def forecast_day_kw(
     dates: pd.Series | pd.DatetimeIndex,
     typical_kw: np.ndarray,
 ) -> np.ndarray:
+    from load_xgb import predict_load_day
+
     n_days = load_kw.shape[0]
     if day <= 0 and n_days > 0:
         return np.asarray(typical_kw, dtype=float).copy()
-    src = week_similar_index(day, dates, n_days)
-    return load_kw[src].copy()
+    if day >= n_days:
+        src = week_similar_index(day, dates, n_days)
+        return load_kw[src].copy()
+    return predict_load_day(load_kw, dates, typical_kw, day)
 
 
 def apply_morning_ratio(forecast_kw: np.ndarray, actual_today_kw: np.ndarray, start_slot: int) -> np.ndarray:

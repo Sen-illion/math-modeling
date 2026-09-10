@@ -18,6 +18,37 @@ ETA_CHARGE = 0.9
 ETA_DISCHARGE = 0.9
 P_MAX_KWH = P_MAX_KW * DT_HOURS
 
+RNG_SEED = 42
+FEATURE_COLS = [
+    "slot",
+    "dow",
+    "month",
+    "doy",
+    "lag_1d",
+    "lag_2d",
+    "lag_7d",
+    "mean_3d",
+    "mean_7d",
+    "std_7d",
+    "mean_30d",
+]
+XGB_PARAMS = {
+    "n_estimators": 200,
+    "max_depth": 6,
+    "learning_rate": 0.05,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "min_child_weight": 4,
+    "reg_lambda": 1.0,
+    "objective": "reg:squarederror",
+    "tree_method": "hist",
+    "n_jobs": 4,
+    "random_state": RNG_SEED,
+    "verbosity": 0,
+}
+
+# Week-similar M1; only replace result3 if the new official winner is cheaper.
+PREVIOUS_OFFICIAL_M1_COST = 13670359.912618522
 BETA_LOCK = 1.0
 BETA_OPEN = 0.2
 LOCK_SLOTS = 36
