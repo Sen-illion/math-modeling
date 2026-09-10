@@ -1,7 +1,7 @@
 {
   "phase": "official",
-  "created_at": "2026-09-10T16:09:14.237514+00:00",
-  "elapsed_s": 243.62683379999726,
+  "created_at": "2026-09-10T18:42:42.120690+00:00",
+  "elapsed_s": 246.1667591000005,
   "start_day": 31,
   "end_day": 365,
   "inputs": {
@@ -35,40 +35,47 @@
   "metrics": {
     "N0": {
       "n_days": 334,
-      "total_cost": 15122383.531377897,
-      "plan_only_cost": 12508178.19648644,
-      "emergency_cost": 2614205.3348914566,
-      "emergency_kwh": 454772.8231319627,
-      "adj_purchase_kwh": 20573835.090613574,
+      "total_cost": 15030999.77992487,
+      "plan_only_cost": 12417104.132334901,
+      "emergency_cost": 2613895.647589968,
+      "emergency_kwh": 433568.4383974129,
+      "adj_purchase_kwh": 20470134.232944306,
       "n_days_with_intraday_adjust": 0,
-      "elapsed_s": 33.12936180000179,
+      "elapsed_s": 30.326838600001793,
       "leakage_errors": [],
       "gate_errors": []
     },
     "M1": {
       "n_days": 334,
-      "total_cost": 13670359.912618522,
-      "plan_only_cost": 12508925.741865773,
-      "emergency_cost": 389322.47566027177,
-      "emergency_kwh": 87248.94294199464,
-      "adj_purchase_kwh": 20761242.6957806,
+      "total_cost": 13488128.863333719,
+      "plan_only_cost": 12406676.641939852,
+      "emergency_cost": 312299.5725360903,
+      "emergency_kwh": 64111.14953867428,
+      "adj_purchase_kwh": 20709023.221387222,
       "n_days_with_intraday_adjust": 334,
-      "elapsed_s": 122.0210318999998,
+      "elapsed_s": 114.62650819999908,
       "leakage_errors": [],
       "gate_errors": []
     },
     "M0": {
       "n_days": 334,
-      "total_cost": 14311789.074730055,
-      "plan_only_cost": 12516913.517093018,
-      "emergency_cost": 1227833.3319781832,
-      "emergency_kwh": 222173.84222442188,
-      "adj_purchase_kwh": 20742591.403236937,
-      "n_days_with_intraday_adjust": 262,
-      "elapsed_s": 83.71587999999974,
+      "total_cost": 14169835.873884192,
+      "plan_only_cost": 12419611.12564764,
+      "emergency_cost": 1252858.8968379588,
+      "emergency_kwh": 213135.24619145054,
+      "adj_purchase_kwh": 20649540.43694478,
+      "n_days_with_intraday_adjust": 260,
+      "elapsed_s": 97.1833134999979,
       "leakage_errors": [],
       "gate_errors": []
     },
-    "official_winner": "M1"
-  }
+    "official_winner": "M1",
+    "previous_official_m1_cost": 13670359.912618522,
+    "freeze_official": true
+  },
+  "ran_policies": [
+    "N0",
+    "M1",
+    "M0"
+  ]
 }
