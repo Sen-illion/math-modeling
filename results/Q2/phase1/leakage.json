@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "n_errors": 0,
+  "errors": [],
+  "probe_days": [
+    1,
+    31,
+    44
+  ],
+  "n_slots": 144,
+  "note": "No random train/test split is used; models are refit on dates < D only."
+}
