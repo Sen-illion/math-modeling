@@ -1,0 +1,4 @@
+status=Optimal
+objective=35101.567520
+elapsed_s=0.059
+errors=0

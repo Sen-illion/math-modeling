@@ -1,0 +1,32 @@
+{
+  "B0": {
+    "name": "B0",
+    "purchase_kwh": 61789.9354,
+    "cost": 48052.04659084666,
+    "charge_kwh": 0.0,
+    "discharge_kwh": 0.0,
+    "curtail_kwh": 6247.962966666666,
+    "soc0_kwh": 6000.0,
+    "soc24_kwh": 6000.0
+  },
+  "B1": {
+    "name": "B1",
+    "purchase_kwh": 62708.51696666666,
+    "cost": 38584.817584779994,
+    "charge_kwh": 16757.13159259259,
+    "discharge_kwh": 16757.131592592596,
+    "curtail_kwh": 3628.927863786011,
+    "soc0_kwh": 6000.0,
+    "soc24_kwh": 5999.999999999999
+  },
+  "M0": {
+    "name": "M0",
+    "purchase_kwh": 59482.698919999995,
+    "cost": 35101.56752036099,
+    "charge_kwh": 18666.59946,
+    "discharge_kwh": 18666.599541,
+    "curtail_kwh": 0.0,
+    "soc0_kwh": 6000.0,
+    "soc24_kwh": 6000.0
+  }
+}
