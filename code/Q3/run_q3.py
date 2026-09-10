@@ -102,7 +102,7 @@ def run_phase(bundle: dict, phase: str) -> dict:
 
     metrics = {}
     payloads = {}
-    names = ["B0", "M1", "M2", "M0", "oracle"] if phase == "phase1" else ["M0"]
+    names = ["N0", "B0", "M1", "M2", "M0", "oracle"] if phase == "phase1" else ["N0", "M1", "M0"]
     for name in names:
         t0 = time.perf_counter()
         if name == "oracle":
@@ -155,30 +155,31 @@ def run_phase(bundle: dict, phase: str) -> dict:
         (out_dir / f"{name}_summary.json").write_text(
             json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
         )
-        if name == "M0":
+        if name in ("M0", "N0", "M1"):
             jan1 = payload["records"][0]
             if abs(jan1["actual"]["soc0_kwh"] - 6000.0) > 1e-3:
                 raise RuntimeError("Jan 1 0:00 SOC != 6000")
             if start_day > 0:
                 if abs(payload["records"][start_day - 1]["soc24_kwh"] - payload["official"][0]["actual"]["soc0_kwh"]) > 1e-3:
                     raise RuntimeError("Feb 1 SOC0 != Jan 31 SOC24")
+        if name == "N0" and summary["n_days_with_intraday_adjust"] != 0:
+            raise RuntimeError("N0 must keep the 0:00 contract all day")
         if leak:
             raise RuntimeError(f"{name} leakage: {leak[:8]}")
         if name == "oracle" and "M0" in metrics:
             if metrics["oracle"]["total_cost"] - 1e-6 > metrics["M0"]["total_cost"]:
-                # warn but keep running; recorded in metrics
                 metrics["oracle"]["note"] = "oracle cost above M0"
 
     if phase == "official":
-        m0 = payloads["M0"]
-        export_result3(m0["official"], bundle["year"]["slot_end_min"], RESULT_DIR / "result3.xlsx")
-        export_paper_tables(m0["official"], bundle["year"]["slot_end_min"], price144)
-        if abs(payloads["M0"]["official"][0]["actual"]["soc0_kwh"] - 6000) > 1 and start_day == 0:
-            pass
+        winner = min(("N0", "M1", "M0"), key=lambda n: metrics[n]["total_cost"])
+        metrics["official_winner"] = winner
+        win = payloads[winner]
+        export_result3(win["official"], bundle["year"]["slot_end_min"], RESULT_DIR / "result3.xlsx")
+        export_paper_tables(win["official"], bundle["year"]["slot_end_min"], price144)
         jan31 = start_day - 1
         if jan31 >= 0:
-            soc_feb1 = payloads["M0"]["soc_track"][start_day]
-            last_warm = payloads["M0"]["records"][jan31]
+            soc_feb1 = win["soc_track"][start_day]
+            last_warm = win["records"][jan31]
             if abs(last_warm["soc24_kwh"] - soc_feb1) > 1e-6:
                 raise RuntimeError("Feb 1 SOC0 != Jan 31 SOC24")
 

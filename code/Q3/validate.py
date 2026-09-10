@@ -46,6 +46,10 @@ def leakage_errors(records: list[dict], load_kwh: np.ndarray, dates, typical_kw:
             errors.append(f"day {day} missing 0:00 update")
         if not np.allclose(rec["g_plan_kwh"][:36], rec["g_adj_kwh"][:36], atol=ABS_TOL_KWH, rtol=0):
             errors.append(f"day {day} 0:00-6:00 contract changed after 0:00")
+        if len(rec["updates"]) == 1 and not np.allclose(
+            rec["g_plan_kwh"], rec["g_adj_kwh"], atol=ABS_TOL_KWH, rtol=0
+        ):
+            errors.append(f"day {day} no-adjust run changed remaining contract")
     if n_days < 0:
         errors.append("empty year")
     return errors

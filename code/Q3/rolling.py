@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 from config import (
+    ADJ_PV_L1_KWH,
     BETA_LOCK,
     BETA_OPEN,
     DT_HOURS,
@@ -29,13 +30,16 @@ class Policy:
     use_buffer: bool
     look_ahead: bool
     selective: bool
+    no_adjust: bool = False
+    use_terminal: bool = False
 
 
 POLICIES = {
+    "N0": Policy("N0", use_buffer=True, look_ahead=False, selective=False, no_adjust=True),
     "B0": Policy("B0", use_buffer=False, look_ahead=False, selective=False),
     "M1": Policy("M1", use_buffer=True, look_ahead=False, selective=False),
-    "M2": Policy("M2", use_buffer=True, look_ahead=True, selective=False),
-    "M0": Policy("M0", use_buffer=True, look_ahead=True, selective=True),
+    "M2": Policy("M2", use_buffer=True, look_ahead=True, selective=False, use_terminal=True),
+    "M0": Policy("M0", use_buffer=True, look_ahead=False, selective=True),
 }
 
 
@@ -105,39 +109,80 @@ def run_day(
             pv_h = np.maximum(pv_point, 0.0) * DT_HOURS
 
         plan_slice = None if hour == 0 else g_plan[start_slot:]
-        free = solve_rolling_lp(
-            price_h,
-            load_kw_h * DT_HOURS,
-            pv_h,
-            soc,
-            n_today=n_today,
-            g_plan_today=plan_slice,
-            lock_to_plan=False,
-        )
+        term = 0.4 if policy.use_terminal else 0.0
         take_free = True
         keep_obj = None
-        if hour > 0 and policy.selective:
-            locked = solve_rolling_lp(
+        pv_l1 = 0.0
+        chosen = None
+
+        if hour > 0 and policy.no_adjust:
+            take_free = False
+        elif hour > 0 and policy.selective:
+            pv0 = interp_kw[day, 0, start_slot : start_slot + n_today]
+            pv_l1 = float(np.abs(interp_kw[day, iss, :n_today] - pv0).sum() * DT_HOURS)
+            if pv_l1 < ADJ_PV_L1_KWH:
+                take_free = False
+            else:
+                free = solve_rolling_lp(
+                    price_h,
+                    load_kw_h * DT_HOURS,
+                    pv_h,
+                    soc,
+                    n_today=n_today,
+                    g_plan_today=plan_slice,
+                    lock_to_plan=False,
+                    terminal_lambda=term,
+                )
+                locked = solve_rolling_lp(
+                    price_h,
+                    load_kw_h * DT_HOURS,
+                    pv_h,
+                    soc,
+                    n_today=n_today,
+                    g_plan_today=plan_slice,
+                    lock_to_plan=True,
+                    terminal_lambda=term,
+                )
+                keep_obj = locked["objective"]
+                take_free = free["objective"] < (1.0 - SELECT_EPS) * locked["objective"]
+                chosen = free if take_free else locked
+        else:
+            free = solve_rolling_lp(
                 price_h,
                 load_kw_h * DT_HOURS,
                 pv_h,
                 soc,
                 n_today=n_today,
                 g_plan_today=plan_slice,
-                lock_to_plan=True,
+                lock_to_plan=False,
+                terminal_lambda=term,
             )
-            keep_obj = locked["objective"]
-            take_free = free["objective"] < (1.0 - SELECT_EPS) * locked["objective"]
-            chosen = free if take_free else locked
-        else:
             chosen = free
 
-        today_purchase = chosen["today_purchase_kwh"]
         if hour == 0:
+            today_purchase = chosen["today_purchase_kwh"]
             g_plan = today_purchase.copy()
             g_adj = today_purchase.copy()
+            if policy.no_adjust:
+                piece = simulate_range(load_kwh[day], pv_kwh[day], g_adj, soc, 0, N_INTERVALS)
+                charge[:] = piece["charge_kwh"]
+                discharge[:] = piece["discharge_kwh"]
+                emergency[:] = piece["emergency_kwh"]
+                curtail[:] = piece["curtail_kwh"]
+                soc_end[:] = piece["soc_end_kwh"]
+                soc = piece["soc_last_kwh"]
+                updates.append(
+                    {
+                        "hour": 0,
+                        "adjusted": True,
+                        "objective": float(chosen["objective"]),
+                        "keep_objective": None,
+                        "pv_l1_kwh": 0.0,
+                    }
+                )
+                break
         elif take_free:
-            g_adj[start_slot:] = today_purchase
+            g_adj[start_slot:] = chosen["today_purchase_kwh"]
 
         next_slot = N_INTERVALS if hour == ISSUE_HOURS[-1] else (hour + 6) * 6
         piece = simulate_range(load_kwh[day], pv_kwh[day], g_adj, soc, start_slot, next_slot)
@@ -151,8 +196,9 @@ def run_day(
             {
                 "hour": hour,
                 "adjusted": bool(hour == 0 or take_free),
-                "objective": float(chosen["objective"]),
+                "objective": None if chosen is None else float(chosen["objective"]),
                 "keep_objective": None if keep_obj is None else float(keep_obj),
+                "pv_l1_kwh": pv_l1,
             }
         )
 
