@@ -1,0 +1,80 @@
+{
+  "source": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q2\\adaptive\\daily_adaptive.csv",
+  "windows": [
+    {
+      "window": "tune",
+      "n_days": 150,
+      "n_switches": 32,
+      "switch_rate": 0.21476510067114093,
+      "n_two_day_flips": 11,
+      "two_day_flip_rate": 0.07432432432432433,
+      "mean_run_length": 4.545454545454546,
+      "max_run_length": 21,
+      "lag1_autocorr": 0.6676247504990017,
+      "mean_q": 0.8033333333333333,
+      "std_q": 0.04307615994440029,
+      "q_counts": {
+        "0.7": 17,
+        "0.8": 89,
+        "0.85": 44
+      }
+    },
+    {
+      "window": "oos",
+      "n_days": 184,
+      "n_switches": 23,
+      "switch_rate": 0.12568306010928962,
+      "n_two_day_flips": 5,
+      "two_day_flip_rate": 0.027472527472527472,
+      "mean_run_length": 7.666666666666667,
+      "max_run_length": 84,
+      "lag1_autocorr": 0.8601080348883311,
+      "mean_q": 0.7434782608695653,
+      "std_q": 0.05576415364513333,
+      "q_counts": {
+        "0.7": 112,
+        "0.8": 56,
+        "0.85": 16
+      }
+    },
+    {
+      "window": "full",
+      "n_days": 334,
+      "n_switches": 55,
+      "switch_rate": 0.16516516516516516,
+      "n_two_day_flips": 16,
+      "two_day_flip_rate": 0.04819277108433735,
+      "mean_run_length": 5.964285714285714,
+      "max_run_length": 84,
+      "lag1_autocorr": 0.8491880320831114,
+      "mean_q": 0.7703592814371257,
+      "std_q": 0.05859014463700757,
+      "q_counts": {
+        "0.7": 129,
+        "0.8": 145,
+        "0.85": 60
+      }
+    },
+    {
+      "window": "rule_days_only",
+      "n_days": 313,
+      "n_switches": 54,
+      "switch_rate": 0.17307692307692307,
+      "n_two_day_flips": 16,
+      "two_day_flip_rate": 0.05144694533762058,
+      "mean_run_length": 5.6909090909090905,
+      "max_run_length": 84,
+      "lag1_autocorr": 0.8494283377550528,
+      "mean_q": 0.768370607028754,
+      "std_q": 0.06000183728775544,
+      "q_counts": {
+        "0.7": 129,
+        "0.8": 124,
+        "0.85": 60
+      }
+    }
+  ],
+  "warmup_days": 21,
+  "verdict_note": "two_day_flip_rate near or above 0.5 with mean_run_length near 1 would indicate self-referential oscillation; switch the state feature to resid_vol7 in that case.",
+  "oscillating": false
+}

@@ -1,0 +1,10 @@
+{
+  "n_official_days": 334,
+  "n_emergency_periods": 247,
+  "emergency_kwh": 79889.7360865399,
+  "purchase_kwh": 21582594.84695663,
+  "plan_cost": 13225318.002339212,
+  "feb1_soc0": 6000.0,
+  "last_soc24": 1345.059326111112,
+  "path": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q2\\adaptive\\result2_adaptive.xlsx"
+}

@@ -1,0 +1,64 @@
+{
+  "label": "resid_vol7_qmin0.65_k0.20",
+  "feature": "resid_vol7",
+  "q_min": 0.65,
+  "k": 0.2,
+  "ladder": [
+    0.6,
+    0.7,
+    0.8,
+    0.85,
+    0.9
+  ],
+  "q_warmup": 0.8,
+  "warmup_days": 7,
+  "min_history": 21,
+  "selection_protocol": {
+    "step1": "beat fixed 0.8 on inner window 2025-02-01..2025-04-30",
+    "step2": "lowest total cost on select window 2025-05-01..2025-06-30",
+    "n_candidates": 45,
+    "n_eligible_after_step1": 5,
+    "fell_back_to_full_pool": false
+  },
+  "tune_window": {
+    "start": "2025-02-01",
+    "end": "2025-06-30"
+  },
+  "fixed_q80_costs": {
+    "tune": 5752019.107827847,
+    "inner": 3377440.851891596,
+    "select": 2374578.255936251
+  },
+  "tune_total_cost": 5739936.3452173155,
+  "tune_gain_vs_fixed_q80": 12082.762610531412,
+  "inner_total_cost": 3374577.086786068,
+  "inner_gain_vs_fixed_q80": 2863.7651055278257,
+  "select_total_cost": 2365359.258431248,
+  "select_gain_vs_fixed_q80": 9218.99750500312,
+  "beats_fixed_q80_on_tune": true,
+  "q_counts_tune": {
+    "0.7": 17,
+    "0.8": 89,
+    "0.85": 44
+  },
+  "grid": {
+    "features": [
+      "em7",
+      "resid_vol7",
+      "peak_ratio"
+    ],
+    "q_min": [
+      0.6,
+      0.65,
+      0.7,
+      0.75,
+      0.8
+    ],
+    "k": [
+      0.1,
+      0.2,
+      0.3
+    ]
+  },
+  "note": "Tuned on the tune window only. Out-of-sample and full-year numbers come from --adaptive-full. Does not overwrite results/Q2/opt/ or result2.xlsx."
+}

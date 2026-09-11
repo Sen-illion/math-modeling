@@ -35,5 +35,8 @@ Thumbs.db
 *.tmp
 *.bak
 
+# Q2 点预测磁盘缓存，按附件与超参指纹自动重算，不入库
+data_clean/Q2/forecast_bank.npz
+
 # 每台电脑独立的 Codex 冷启动验证状态
 .local/

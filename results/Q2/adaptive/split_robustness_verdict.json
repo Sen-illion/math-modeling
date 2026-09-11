@@ -1,0 +1,27 @@
+{
+  "n_splits_tested": 12,
+  "distinct_picks": 3,
+  "pick_counts": {
+    "resid_vol7_qmin0.65_k0.20": 7,
+    "resid_vol7_qmin0.60_k0.20": 3,
+    "resid_vol7_qmin0.70_k0.10": 2
+  },
+  "modal_pick": "resid_vol7_qmin0.65_k0.20",
+  "modal_share": 0.5833333333333334,
+  "known_out_of_sample": {
+    "resid_vol7_qmin0.65_k0.20": {
+      "oos_gain": 55585.64934601355,
+      "full_gain": 67668.41195654497
+    },
+    "resid_vol7_qmin0.60_k0.20": {
+      "oos_gain": -77674.67159756739,
+      "full_gain": -58720.78754471988
+    },
+    "resid_vol7_qmin0.70_k0.10": {
+      "oos_gain": 52528.63942230865,
+      "full_gain": 65569.16316748783
+    }
+  },
+  "picks_with_unknown_oos": [],
+  "all_picks_share_one_feature": true
+}

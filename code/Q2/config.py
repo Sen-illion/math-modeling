@@ -29,6 +29,20 @@ OFFICIAL_END = "2025-12-31"
 PHASE1_END = "2025-02-14"
 SIM_START = OFFICIAL_START
 
+# Adaptive day-level quantile: tune on OFFICIAL_START..TUNE_END, validate on the rest.
+TUNE_END = "2025-06-30"
+OOS_START = "2025-07-01"
+# Nested split inside the tuning window. Parameters are fitted on the inner window and
+# the rule is picked on the select window, so the argmax is never taken on the window it
+# was scored on and OOS stays untouched during selection.
+TUNE_INNER_END = "2025-04-30"
+TUNE_SELECT_START = "2025-05-01"
+Q_LADDER = (0.6, 0.7, 0.8, 0.85, 0.9)
+Q_WARMUP = 0.8
+ADAPTIVE_WARMUP_DAYS = 7
+# Frozen start-aligned C_pv7d_q82 official total (results/Q2/opt/full_year_summary.json).
+FROZEN_C_Q82_FULL_YEAR_COST = 13765167.58173598
+
 # Official Q2 V1 keeps no end-of-day SOC value in the day-ahead LP.
 TERMINAL_TARGET_KWH = 6000.0
 TERMINAL_LAMBDA = 0.0
@@ -85,7 +99,10 @@ RESULT_DIR = REPO_ROOT / "results" / "Q2"
 PHASE1_DIR = RESULT_DIR / "phase1"
 FULL_DIR = RESULT_DIR / "full_year"
 OPT_DIR = RESULT_DIR / "opt"
+ADAPTIVE_DIR = RESULT_DIR / "adaptive"
+DIAG_DIR = RESULT_DIR / "diagnostics"
 LOG_DIR = RESULT_DIR / "logs"
+FORECAST_BANK_NPZ = CLEAN_DIR / "forecast_bank.npz"
 ASSET_TABLE_DIR = REPO_ROOT / "paper" / "assets" / "tables"
 
 # Paper Table 1 slots end at HH:10. Table 3 specified dates are from the problem statement.

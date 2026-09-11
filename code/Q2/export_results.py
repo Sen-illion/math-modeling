@@ -236,9 +236,14 @@ def export_result2(prices: pd.DataFrame, traces: list[dict], dest: Path | None =
         "last_soc24": float(official[-1]["soc24_kwh"]),
         "path": str(dest),
     }
-    (RESULT_DIR / "result2_checks.json").write_text(
-        json.dumps(checks, ensure_ascii=False, indent=2), encoding="utf-8"
+    # Keep the checks beside their own workbook so a staged candidate export cannot
+    # overwrite the official results/Q2/result2_checks.json.
+    checks_path = (
+        RESULT_DIR / "result2_checks.json"
+        if dest == RESULT2_XLSX
+        else dest.with_name(f"{dest.stem}_checks.json")
     )
+    checks_path.write_text(json.dumps(checks, ensure_ascii=False, indent=2), encoding="utf-8")
     return dest
 
 

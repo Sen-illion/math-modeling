@@ -19,6 +19,7 @@ if str(CODE_DIR) not in sys.path:
 sys.path.insert(0, str(ROOT))
 
 from config import (  # noqa: E402
+    ADAPTIVE_DIR,
     ATTACHMENT1_XLSX,
     ATTACHMENT2_XLSX,
     DT_HOURS,
@@ -27,17 +28,20 @@ from config import (  # noqa: E402
     E_MIN_KWH,
     ETA_CHARGE,
     ETA_DISCHARGE,
+    FROZEN_C_Q82_FULL_YEAR_COST,
     FULL_DIR,
     MODEL_NAMES,
     MPC_STRIDE,
     MPC_STRIDE_FALLBACK,
     OFFICIAL_END,
     OFFICIAL_START,
+    OOS_START,
     OPT_DIR,
     P_MAX_KWH,
     PHASE1_DIR,
     PHASE1_END,
     PHASE1_MPC_BUDGET_S,
+    Q_LADDER,
     REPO_ROOT,
     RESULT2_TEMPLATE_XLSX,
     RESULT2_XLSX,
@@ -45,8 +49,20 @@ from config import (  # noqa: E402
     SIM_START,
     TERMINAL_LAMBDA,
     TERMINAL_TARGET_KWH,
+    TUNE_END,
+    TUNE_INNER_END,
+    TUNE_SELECT_START,
     XGB_PARAMS,
 )
+from adaptive import (  # noqa: E402
+    FEATURE_NAMES,
+    dumps,
+    flatten_for_table,
+    run_adaptive,
+    run_fixed,
+    summarise,
+)
+from bank import check_length, ladder_banks, load_point_bank, point_residual_history  # noqa: E402
 from forecast import apply_conservative_bias, precompute_panel, predict_day  # noqa: E402
 from leakage import run_leakage_suite  # noqa: E402
 from load_data import audit_data, load_prices, load_year_actuals, write_clean  # noqa: E402
@@ -621,6 +637,193 @@ def prepare_forecast_bank(
     return {"model": xgb, "model_s": t_xgb, "baseline_7d": hyb, "baseline_7d_s": t_hyb}
 
 
+ADAPTIVE_QMIN_GRID = (0.60, 0.65, 0.70, 0.75, 0.80)
+ADAPTIVE_K_GRID = (0.10, 0.20, 0.30)
+
+
+def _adaptive_inputs(refresh: bool = False):
+    copy_raw_inputs()
+    prices = load_prices()
+    year = load_aligned_year(prices)
+    audit_data(prices, year)
+    dates = year["dates"]
+    end_idx = int(np.where(pd.to_datetime(dates) == pd.Timestamp(OFFICIAL_END))[0][0])
+    point = load_point_bank(prices, year, 0, end_idx, refresh=refresh)
+    check_length(point)
+    banks = ladder_banks(point, year, Q_LADDER)
+    residuals = point_residual_history(point, year)
+    return prices, year, point, banks, residuals
+
+
+def run_adaptive_tune(args) -> None:
+    """Grid-search the adaptive rule on OFFICIAL_START..TUNE_END only."""
+    prices, year, _point, banks, residuals = _adaptive_inputs(refresh=args.refresh_bank)
+    ADAPTIVE_DIR.mkdir(parents=True, exist_ok=True)
+    windows = [
+        ("tune", OFFICIAL_START, TUNE_END),
+        ("inner", OFFICIAL_START, TUNE_INNER_END),
+        ("select", TUNE_SELECT_START, TUNE_END),
+    ]
+    rows = []
+    summaries = []
+    daily_parts = []
+
+    for q in Q_LADDER:
+        print(f"tune fixed q={q}", flush=True)
+        result = run_fixed(prices, year, banks, q, TUNE_END)
+        if result["errors"]:
+            raise RuntimeError(f"fixed q={q} failed: {result['errors'][:5]}")
+        summary = summarise(result, windows)
+        summaries.append(summary)
+        rows.append(flatten_for_table(summary))
+        daily_parts.append(result["daily"].assign(label=summary["label"]))
+
+    for feature in FEATURE_NAMES:
+        for q_min in ADAPTIVE_QMIN_GRID:
+            for k in ADAPTIVE_K_GRID:
+                label = f"{feature}_qmin{q_min:.2f}_k{k:.2f}"
+                print("tune", label, flush=True)
+                result = run_adaptive(
+                    prices, year, banks, residuals, TUNE_END, feature=feature, q_min=q_min, k=k, label=label
+                )
+                if result["errors"]:
+                    raise RuntimeError(f"{label} failed: {result['errors'][:5]}")
+                summary = summarise(result, windows)
+                summaries.append(summary)
+                rows.append(flatten_for_table(summary))
+                daily_parts.append(result["daily"].assign(label=label))
+
+    frame = pd.DataFrame(rows).sort_values("select_total_cost").reset_index(drop=True)
+    frame.to_csv(ADAPTIVE_DIR / "tune_comparison.csv", index=False, encoding="utf-8-sig")
+    pd.concat(daily_parts, ignore_index=True).to_csv(
+        ADAPTIVE_DIR / "tune_daily_all.csv", index=False, encoding="utf-8-sig"
+    )
+
+    baseline = next(s for s in summaries if s["label"] == "fixed_q80")
+    base = {name: baseline["windows"][name]["total_cost"] for name in ("tune", "inner", "select")}
+    adaptive_only = [s for s in summaries if s["rule"].get("feature") is not None]
+    # Nested protocol: a candidate must first help on the inner window, then the winner is
+    # the best of those on the select window. Neither step looks at 07-01..12-31.
+    eligible = [s for s in adaptive_only if s["windows"]["inner"]["total_cost"] < base["inner"]]
+    pool = eligible or adaptive_only
+    best = min(pool, key=lambda s: s["windows"]["select"]["total_cost"])
+    selected = dict(best["rule"])
+    selected["selection_protocol"] = {
+        "step1": f"beat fixed 0.8 on inner window {OFFICIAL_START}..{TUNE_INNER_END}",
+        "step2": f"lowest total cost on select window {TUNE_SELECT_START}..{TUNE_END}",
+        "n_candidates": len(adaptive_only),
+        "n_eligible_after_step1": len(eligible),
+        "fell_back_to_full_pool": not eligible,
+    }
+    selected["tune_window"] = {"start": OFFICIAL_START, "end": TUNE_END}
+    selected["fixed_q80_costs"] = base
+    for name in ("tune", "inner", "select"):
+        selected[f"{name}_total_cost"] = best["windows"][name]["total_cost"]
+        selected[f"{name}_gain_vs_fixed_q80"] = base[name] - best["windows"][name]["total_cost"]
+    selected["beats_fixed_q80_on_tune"] = bool(best["windows"]["tune"]["total_cost"] < base["tune"])
+    selected["q_counts_tune"] = best["windows"]["tune"].get("q_counts")
+    selected["grid"] = {"features": list(FEATURE_NAMES), "q_min": list(ADAPTIVE_QMIN_GRID), "k": list(ADAPTIVE_K_GRID)}
+    selected["note"] = (
+        "Tuned on the tune window only. Out-of-sample and full-year numbers come from "
+        "--adaptive-full. Does not overwrite results/Q2/opt/ or result2.xlsx."
+    )
+    (ADAPTIVE_DIR / "selected_rule.json").write_text(dumps(selected), encoding="utf-8")
+    (ADAPTIVE_DIR / "tune_summaries.json").write_text(dumps(summaries), encoding="utf-8")
+    print(frame.head(12).to_string(index=False), flush=True)
+    print("selected", dumps(selected), flush=True)
+    print("wrote", ADAPTIVE_DIR, flush=True)
+
+
+def run_adaptive_full(args) -> None:
+    """Freeze the tuned rule, then replay 02-01..12-31 with SOC rolling throughout."""
+    rule_path = ADAPTIVE_DIR / "selected_rule.json"
+    if not rule_path.exists():
+        raise SystemExit("missing results/Q2/adaptive/selected_rule.json; run --adaptive-tune first")
+    rule = json.loads(rule_path.read_text(encoding="utf-8"))
+    prices, year, _point, banks, residuals = _adaptive_inputs(refresh=args.refresh_bank)
+    ADAPTIVE_DIR.mkdir(parents=True, exist_ok=True)
+    windows = [
+        ("tune", OFFICIAL_START, TUNE_END),
+        ("oos", OOS_START, OFFICIAL_END),
+        ("full", OFFICIAL_START, OFFICIAL_END),
+    ]
+
+    print("full year: adaptive", rule["label"], flush=True)
+    adaptive = run_adaptive(
+        prices,
+        year,
+        banks,
+        residuals,
+        OFFICIAL_END,
+        feature=rule["feature"],
+        q_min=float(rule["q_min"]),
+        k=float(rule["k"]),
+        label=rule["label"],
+        collect_traces=True,
+    )
+    if adaptive["errors"]:
+        raise RuntimeError(f"adaptive full year failed: {adaptive['errors'][:5]}")
+    adaptive_summary = summarise(adaptive, windows)
+    adaptive["daily"].to_csv(ADAPTIVE_DIR / "daily_adaptive.csv", index=False, encoding="utf-8-sig")
+
+    print("full year: fixed q=0.8 baseline", flush=True)
+    base = run_fixed(prices, year, banks, 0.8, OFFICIAL_END)
+    if base["errors"]:
+        raise RuntimeError(f"fixed q=0.8 full year failed: {base['errors'][:5]}")
+    base_summary = summarise(base, windows)
+    base["daily"].to_csv(ADAPTIVE_DIR / "daily_fixed_q80.csv", index=False, encoding="utf-8-sig")
+
+    full_adaptive = adaptive_summary["windows"]["full"]
+    full_base = base_summary["windows"]["full"]
+    oos_adaptive = adaptive_summary["windows"]["oos"]
+    oos_base = base_summary["windows"]["oos"]
+
+    gate = {
+        "beats_frozen_on_full_year": bool(full_adaptive["total_cost"] < FROZEN_C_Q82_FULL_YEAR_COST),
+        "beats_fixed_q80_out_of_sample": bool(oos_adaptive["total_cost"] < oos_base["total_cost"]),
+        "clean_validation": bool(
+            adaptive_summary["n_validation_errors"] == 0
+            and full_adaptive["max_unserved_kwh"] <= 1e-3
+            and full_adaptive["n_simultaneous_plan"] == 0
+        ),
+    }
+    gate["passed"] = bool(all(gate.values()))
+    gate["allow_export_result2"] = gate["passed"]
+
+    report = {
+        "rule": rule,
+        "frozen_c82_full_year_cost": FROZEN_C_Q82_FULL_YEAR_COST,
+        "adaptive": adaptive_summary,
+        "fixed_q80": base_summary,
+        "deltas": {
+            "full_vs_frozen": full_adaptive["total_cost"] - FROZEN_C_Q82_FULL_YEAR_COST,
+            "full_vs_fixed_q80": full_adaptive["total_cost"] - full_base["total_cost"],
+            "oos_vs_fixed_q80": oos_adaptive["total_cost"] - oos_base["total_cost"],
+            "tune_vs_fixed_q80": adaptive_summary["windows"]["tune"]["total_cost"]
+            - base_summary["windows"]["tune"]["total_cost"],
+        },
+        "gate": gate,
+    }
+    # The gate only clears the candidate for adoption. The official result2.xlsx and
+    # results/Q2/opt/ stay untouched until a teammate confirms the swap, so the staged
+    # workbook is written beside the adaptive evidence instead.
+    if gate["passed"]:
+        staged = export_result2(prices, adaptive["traces"], ADAPTIVE_DIR / "result2_adaptive.xlsx")
+        report["staged_result2"] = str(staged)
+        print("staged candidate workbook:", staged, flush=True)
+    (ADAPTIVE_DIR / "full_year_summary.json").write_text(dumps(report), encoding="utf-8")
+    (ADAPTIVE_DIR / "oos_summary.json").write_text(
+        dumps({"adaptive": oos_adaptive, "fixed_q80": oos_base, "delta": report["deltas"]["oos_vs_fixed_q80"]}),
+        encoding="utf-8",
+    )
+    pd.DataFrame(
+        [flatten_for_table(adaptive_summary), flatten_for_table(base_summary)]
+    ).to_csv(ADAPTIVE_DIR / "full_comparison.csv", index=False, encoding="utf-8-sig")
+    print(dumps(report["deltas"]), flush=True)
+    print("gate", dumps(gate), flush=True)
+    print("wrote", ADAPTIVE_DIR, flush=True)
+
+
 def run_opt(args) -> None:
     copy_raw_inputs()
     prices = load_prices()
@@ -826,9 +1029,18 @@ def main() -> None:
     parser.add_argument("--end-date", default=None)
     parser.add_argument("--skip-leakage", action="store_true")
     parser.add_argument("--export-result2", action="store_true")
+    parser.add_argument("--adaptive-tune", action="store_true")
+    parser.add_argument("--adaptive-full", action="store_true")
+    parser.add_argument("--refresh-bank", action="store_true")
     args = parser.parse_args()
     if args.export_result2:
         run_export_result2()
+        return
+    if args.adaptive_tune:
+        run_adaptive_tune(args)
+        return
+    if args.adaptive_full:
+        run_adaptive_full(args)
         return
     if args.opt:
         if not args.full and not args.phase1_tune:

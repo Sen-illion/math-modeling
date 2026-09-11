@@ -1,0 +1,15 @@
+{
+  "n_in_sample_winners": 5,
+  "n_surviving_out_of_sample": 3,
+  "surviving_labels": [
+    "resid_vol7_qmin0.70_k0.10",
+    "resid_vol7_qmin0.65_k0.20",
+    "resid_vol7_qmin0.75_k0.10"
+  ],
+  "fixed_q80": {
+    "tune": 5752019.107827847,
+    "oos": 8013148.473908133,
+    "full": 13765167.58173598
+  },
+  "conclusion": "at least one rule generalises; re-check before adopting"
+}

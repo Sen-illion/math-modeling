@@ -1,0 +1,245 @@
+{
+  "rule": {
+    "label": "resid_vol7_qmin0.65_k0.20",
+    "feature": "resid_vol7",
+    "q_min": 0.65,
+    "k": 0.2,
+    "ladder": [
+      0.6,
+      0.7,
+      0.8,
+      0.85,
+      0.9
+    ],
+    "q_warmup": 0.8,
+    "warmup_days": 7,
+    "min_history": 21,
+    "selection_protocol": {
+      "step1": "beat fixed 0.8 on inner window 2025-02-01..2025-04-30",
+      "step2": "lowest total cost on select window 2025-05-01..2025-06-30",
+      "n_candidates": 45,
+      "n_eligible_after_step1": 5,
+      "fell_back_to_full_pool": false
+    },
+    "tune_window": {
+      "start": "2025-02-01",
+      "end": "2025-06-30"
+    },
+    "fixed_q80_costs": {
+      "tune": 5752019.107827847,
+      "inner": 3377440.851891596,
+      "select": 2374578.255936251
+    },
+    "tune_total_cost": 5739936.3452173155,
+    "tune_gain_vs_fixed_q80": 12082.762610531412,
+    "inner_total_cost": 3374577.086786068,
+    "inner_gain_vs_fixed_q80": 2863.7651055278257,
+    "select_total_cost": 2365359.258431248,
+    "select_gain_vs_fixed_q80": 9218.99750500312,
+    "beats_fixed_q80_on_tune": true,
+    "q_counts_tune": {
+      "0.7": 17,
+      "0.8": 89,
+      "0.85": 44
+    },
+    "grid": {
+      "features": [
+        "em7",
+        "resid_vol7",
+        "peak_ratio"
+      ],
+      "q_min": [
+        0.6,
+        0.65,
+        0.7,
+        0.75,
+        0.8
+      ],
+      "k": [
+        0.1,
+        0.2,
+        0.3
+      ]
+    },
+    "note": "Tuned on the tune window only. Out-of-sample and full-year numbers come from --adaptive-full. Does not overwrite results/Q2/opt/ or result2.xlsx."
+  },
+  "frozen_c82_full_year_cost": 13765167.58173598,
+  "adaptive": {
+    "label": "resid_vol7_qmin0.65_k0.20",
+    "rule": {
+      "label": "resid_vol7_qmin0.65_k0.20",
+      "feature": "resid_vol7",
+      "q_min": 0.65,
+      "k": 0.2,
+      "ladder": [
+        0.6,
+        0.7,
+        0.8,
+        0.85,
+        0.9
+      ],
+      "q_warmup": 0.8,
+      "warmup_days": 7,
+      "min_history": 21
+    },
+    "n_validation_errors": 0,
+    "validation_errors_head": [],
+    "elapsed_s": 25.384652499997173,
+    "windows": {
+      "tune": {
+        "window": "tune",
+        "start": "2025-02-01",
+        "end": "2025-06-30",
+        "n_days": 150,
+        "total_cost": 5739936.3452173155,
+        "plan_cost": 5520699.101445236,
+        "emergency_cost": 219237.24377207935,
+        "emergency_kwh": 36149.10343442663,
+        "emergency_days": 46,
+        "purchase_kwh": 9141047.67284422,
+        "curtail_kwh": 1272087.731030437,
+        "mean_soc24_actual": 1960.3423755619267,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.8033333333333333,
+        "q_counts": {
+          "0.7": 17,
+          "0.8": 89,
+          "0.85": 44
+        }
+      },
+      "oos": {
+        "window": "oos",
+        "start": "2025-07-01",
+        "end": "2025-12-31",
+        "n_days": 184,
+        "total_cost": 7957562.824562119,
+        "plan_cost": 7704618.900893975,
+        "emergency_cost": 252943.92366814445,
+        "emergency_kwh": 43740.63265211324,
+        "emergency_days": 92,
+        "purchase_kwh": 12441547.17411241,
+        "curtail_kwh": 1254634.2898712219,
+        "mean_soc24_actual": 1859.4373435422517,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7434782608695653,
+        "q_counts": {
+          "0.7": 112,
+          "0.8": 56,
+          "0.85": 16
+        }
+      },
+      "full": {
+        "window": "full",
+        "start": "2025-02-01",
+        "end": "2025-12-31",
+        "n_days": 334,
+        "total_cost": 13697499.169779435,
+        "plan_cost": 13225318.002339212,
+        "emergency_cost": 472181.16744022374,
+        "emergency_kwh": 79889.73608653988,
+        "emergency_days": 138,
+        "purchase_kwh": 21582594.84695663,
+        "curtail_kwh": 2526722.0209016586,
+        "mean_soc24_actual": 1904.7539746888124,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7703592814371257,
+        "q_counts": {
+          "0.7": 129,
+          "0.8": 145,
+          "0.85": 60
+        }
+      }
+    }
+  },
+  "fixed_q80": {
+    "label": "fixed_q80",
+    "rule": {
+      "label": "fixed_q80",
+      "feature": null,
+      "q_min": 0.8,
+      "k": 0.0
+    },
+    "n_validation_errors": 0,
+    "validation_errors_head": [],
+    "elapsed_s": 23.72865949998959,
+    "windows": {
+      "tune": {
+        "window": "tune",
+        "start": "2025-02-01",
+        "end": "2025-06-30",
+        "n_days": 150,
+        "total_cost": 5752019.107827847,
+        "plan_cost": 5498680.987604624,
+        "emergency_cost": 253338.12022322242,
+        "emergency_kwh": 41734.09940964128,
+        "emergency_days": 50,
+        "purchase_kwh": 9108464.18411827,
+        "curtail_kwh": 1244315.2503591022,
+        "mean_soc24_actual": 1940.8596508501246,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 150
+        }
+      },
+      "oos": {
+        "window": "oos",
+        "start": "2025-07-01",
+        "end": "2025-12-31",
+        "n_days": 184,
+        "total_cost": 8013148.473908133,
+        "plan_cost": 7871092.474946132,
+        "emergency_cost": 142055.99896199984,
+        "emergency_kwh": 25176.328228604394,
+        "emergency_days": 70,
+        "purchase_kwh": 12667086.1399328,
+        "curtail_kwh": 1473730.409929648,
+        "mean_soc24_actual": 2037.271549880436,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999999,
+        "q_counts": {
+          "0.8": 184
+        }
+      },
+      "full": {
+        "window": "full",
+        "start": "2025-02-01",
+        "end": "2025-12-31",
+        "n_days": 334,
+        "total_cost": 13765167.58173598,
+        "plan_cost": 13369773.462550757,
+        "emergency_cost": 395394.11918522225,
+        "emergency_kwh": 66910.42763824567,
+        "emergency_days": 120,
+        "purchase_kwh": 21775550.32405107,
+        "curtail_kwh": 2718045.66028875,
+        "mean_soc24_actual": 1993.9727928308946,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 334
+        }
+      }
+    }
+  },
+  "deltas": {
+    "full_vs_frozen": -67668.41195654497,
+    "full_vs_fixed_q80": -67668.41195654497,
+    "oos_vs_fixed_q80": -55585.64934601355,
+    "tune_vs_fixed_q80": -12082.762610531412
+  },
+  "gate": {
+    "beats_frozen_on_full_year": true,
+    "beats_fixed_q80_out_of_sample": true,
+    "clean_validation": true,
+    "passed": true,
+    "allow_export_result2": true
+  },
+  "staged_result2": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q2\\adaptive\\result2_adaptive.xlsx"
+}
