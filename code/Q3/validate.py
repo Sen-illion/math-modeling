@@ -19,6 +19,7 @@ from config import (
     REL_TOL,
 )
 from load_forecast import forecast_day_kw, tomorrow_forecast_kw
+from pv_forecast import tomorrow_pv_kw
 from quantile import q_vector
 from simulate import validate_actual
 
@@ -53,6 +54,7 @@ def leakage_errors(
     dates,
     typical_kw: np.ndarray,
     quantile_bank=None,
+    pv_kwh: np.ndarray | None = None,
 ) -> list[str]:
     errors = []
     load_kw = load_kwh / DT_HOURS
@@ -79,6 +81,17 @@ def leakage_errors(
                 coincidence = src >= 0 and np.allclose(load_kw[src], load_kw[day + 1], atol=1e-12, rtol=0)
                 if not coincidence:
                     errors.append(f"day {day} look-ahead forecast leaked tomorrow's actual")
+        pv_tomorrow = rec.get("pv_fc_tomorrow_kw")
+        if pv_tomorrow is not None and pv_kwh is not None:
+            pv_kw = pv_kwh / DT_HOURS
+            expected_pv = tomorrow_pv_kw(pv_kw, day)
+            if not np.allclose(pv_tomorrow, expected_pv, atol=1e-8, rtol=0):
+                errors.append(f"day {day} look-ahead PV is not the causal week-similar series")
+            if day + 1 < n_days and np.allclose(pv_tomorrow, pv_kw[day + 1], atol=1e-12, rtol=0):
+                src = day - 6
+                coincidence = src >= 0 and np.allclose(pv_kw[src], pv_kw[day + 1], atol=1e-12, rtol=0)
+                if not coincidence:
+                    errors.append(f"day {day} look-ahead PV leaked tomorrow's actual")
         if rec["updates"][0]["hour"] != 0:
             errors.append(f"day {day} missing 0:00 update")
         if not np.allclose(rec["g_plan_kwh"][:36], rec["g_adj_kwh"][:36], atol=ABS_TOL_KWH, rtol=0):

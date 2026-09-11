@@ -28,7 +28,7 @@ from config import (
 )
 from load_forecast import forecast_day_kw, horizon_load_kw, tomorrow_forecast_kw
 from model_lp import solve_rolling_lp
-from pv_forecast import conservative_pv_kwh, horizon_pv_kw, horizon_sigma
+from pv_forecast import conservative_pv_kwh, horizon_pv_kw, horizon_sigma, tomorrow_pv_kw, tomorrow_pv_kw
 from quantile import apply_net_quantile, q_vector
 from simulate import simulate_range, simulate_day, validate_actual
 
@@ -158,7 +158,7 @@ def run_day(
             n_horizon,
             load_kw_today if hour > 0 else None,
         )
-        pv_point = horizon_pv_kw(interp_kw, day, iss, n_horizon)
+        pv_point = horizon_pv_kw(interp_kw, day, iss, n_horizon, actual_kw=pv_kwh / DT_HOURS)
         use_quantile = policy.q_lock is not None
         q_off_load = None
         q_off_pv = None
@@ -284,6 +284,8 @@ def run_day(
                         "pv_l1_kwh": 0.0,
                         "n_horizon": n_horizon,
                         "q_lock": policy.q_lock,
+                        "load_q_offset_kw": None if q_off_load is None else q_off_load.copy(),
+                        "pv_q_offset_kw": None if q_off_pv is None else q_off_pv.copy(),
                     }
                 )
                 break
@@ -351,6 +353,16 @@ def run_day(
         if policy.look_ahead
         else None
     )
+    pv_fc_tomorrow = (
+        tomorrow_pv_kw(pv_kwh / DT_HOURS, day)
+        if policy.look_ahead and policy.lookahead_hours > 24
+        else None
+    )
+    pv_fc_tomorrow = (
+        tomorrow_pv_kw(pv_kwh / DT_HOURS, day)
+        if policy.look_ahead and policy.lookahead_hours > 24
+        else None
+    )
 
     return {
         "g_plan_kwh": g_plan,
@@ -361,6 +373,8 @@ def run_day(
         "updates": updates,
         "load_fc0_kw": load_fc0,
         "load_fc_tomorrow_kw": load_fc_tomorrow,
+        "pv_fc_tomorrow_kw": pv_fc_tomorrow,
+        "pv_fc_tomorrow_kw": pv_fc_tomorrow,
         "q_lock": policy.q_lock,
         "q_open": policy.q_open,
         "q_evening": policy.q_evening,

@@ -95,24 +95,42 @@ def conservative_pv_kwh(
     return pv_kw * DT_HOURS
 
 
-def horizon_pv_kw(interp_kw: np.ndarray, day: int, iss: int, n_horizon: int) -> np.ndarray:
-    """Issue-relative PV, then the rest of tomorrow from the next day's 0:00 issue.
+def tomorrow_pv_kw(actual_kw: np.ndarray, day: int) -> np.ndarray:
+    """Next-day PV as knowable at any issue of `day`.
+
+    Tomorrow's 0:00 attachment-3 issue has not been published yet, so the extra
+    tail cannot use `interp[day+1, 0]`. Use the same weekday one week before the
+    target (closed on day-6), matching `tomorrow_forecast_kw` for load.
+    """
+    src = day + 1 - 7
+    n_days = actual_kw.shape[0]
+    if src < 0 or src > day - 1 or src >= n_days:
+        return np.zeros(N_INTERVALS, dtype=float)
+    return np.asarray(actual_kw[src], dtype=float).copy()
+
+
+def horizon_pv_kw(
+    interp_kw: np.ndarray,
+    day: int,
+    iss: int,
+    n_horizon: int,
+    actual_kw: np.ndarray | None = None,
+) -> np.ndarray:
+    """Issue-relative PV, then the rest of tomorrow from a causal week-similar series.
 
     The first 144 slots are already issued at `iss`. Anything longer is calendar
-    tomorrow from the same clock hour to 24:00, taken from day+1's 0:00 forecast.
+    tomorrow from the same clock hour to 24:00.
     """
     first = np.asarray(interp_kw[day, iss], dtype=float)
     if n_horizon <= first.size:
         return first[:n_horizon].copy()
     extra_n = n_horizon - first.size
     start = ISSUE_HOURS[iss] * 6
-    n_days = interp_kw.shape[0]
-    if day + 1 < n_days:
-        extra = np.asarray(interp_kw[day + 1, 0, start : start + extra_n], dtype=float)
-        if extra.size < extra_n:
-            extra = np.pad(extra, (0, extra_n - extra.size))
-    else:
-        extra = np.zeros(extra_n)
+    if actual_kw is None:
+        raise ValueError("48 h PV tail needs actual_kw for the week-similar forecast")
+    extra = tomorrow_pv_kw(actual_kw, day)[start : start + extra_n]
+    if extra.size < extra_n:
+        extra = np.pad(extra, (0, extra_n - extra.size))
     return np.concatenate([first, extra])
 
 

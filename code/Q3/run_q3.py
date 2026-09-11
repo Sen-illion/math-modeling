@@ -186,7 +186,12 @@ def run_phase(
             )
         elapsed = time.perf_counter() - t0
         leak = leakage_errors(
-            payload["records"], load_kwh, dates, typical, quantile_bank=quantile_bank
+            payload["records"],
+            load_kwh,
+            dates,
+            typical,
+            quantile_bank=quantile_bank,
+            pv_kwh=pv_kwh,
         )
         gate = official_errors(
             payload["official"],

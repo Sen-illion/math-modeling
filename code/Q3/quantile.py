@@ -13,7 +13,7 @@ import numpy as np
 
 from config import DT_HOURS, ISSUE_HOURS, LOCK_SLOTS, N_INTERVALS, SIGMA_MIN_SAMPLES
 from load_forecast import horizon_load_kw, tomorrow_forecast_kw
-from pv_forecast import aligned_actual_pv
+from pv_forecast import aligned_actual_pv, tomorrow_pv_kw
 
 
 def q_vector(
@@ -142,10 +142,10 @@ class QuantileBank:
             for i, hour in enumerate(ISSUE_HOURS):
                 start = hour * 6
                 hat = _tail_from_start(tom_load, start)
+                hat_pv = _tail_from_start(tomorrow_pv_kw(pv_actual, d), start)
                 if d + 1 < n_days:
                     act_load = _tail_from_start(load_kw[d + 1], start)
                     act_pv = _tail_from_start(pv_actual[d + 1], start)
-                    hat_pv = _tail_from_start(interp[d + 1, 0], start)
                     load_resid_extra[d, i] = act_load - hat
                     pv_resid_extra[d, i] = act_pv - hat_pv
                 else:
