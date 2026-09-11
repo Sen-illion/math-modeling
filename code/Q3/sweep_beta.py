@@ -40,21 +40,33 @@ def main() -> int:
     parser.add_argument("--out-dir", default="beta_sweep")
     parser.add_argument("--pv-p0", choices=PV_P0_MODES, default=PV_P0_MODE)
     parser.add_argument("--lock-slots", type=int, default=LOCK_SLOTS)
+    parser.add_argument(
+        "--pairs",
+        default=None,
+        help='explicit "lock:open" pairs instead of the full grid, e.g. "1.5:0,1:0"',
+    )
     args = parser.parse_args()
+
+    if args.pairs:
+        combos = []
+        for item in args.pairs.split(","):
+            lock_s, open_s = item.strip().split(":")
+            combos.append((float(lock_s), float(open_s)))
+    else:
+        combos = [(bl, bo) for bl in BETA_LOCK_GRID for bo in BETA_OPEN_GRID]
 
     base = POLICIES[args.base]
     names = []
-    for beta_lock in BETA_LOCK_GRID:
-        for beta_open in BETA_OPEN_GRID:
-            name = f"{args.base}_{_tag(beta_lock, beta_open, args.lock_slots)}"
-            POLICIES[name] = replace(
-                base,
-                name=name,
-                beta_lock=float(beta_lock),
-                beta_open=float(beta_open),
-                lock_slots=int(args.lock_slots),
-            )
-            names.append(name)
+    for beta_lock, beta_open in combos:
+        name = f"{args.base}_{_tag(beta_lock, beta_open, args.lock_slots)}"
+        POLICIES[name] = replace(
+            base,
+            name=name,
+            beta_lock=float(beta_lock),
+            beta_open=float(beta_open),
+            lock_slots=int(args.lock_slots),
+        )
+        names.append(name)
 
     out_dir = EXP_DIR / args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
