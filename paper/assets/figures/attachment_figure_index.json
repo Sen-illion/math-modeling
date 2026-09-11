@@ -1,0 +1,141 @@
+{
+  "mode": "manuscript",
+  "font": "SimSun",
+  "slot_mm": {
+    "stack2": [
+      160.0,
+      108.0
+    ],
+    "heat2": [
+      160.0,
+      124.0
+    ],
+    "split": [
+      160.0,
+      96.0
+    ],
+    "grid4": [
+      160.0,
+      112.0
+    ]
+  },
+  "attachments": {
+    "att1": "附件1.xlsx",
+    "att3": "附件3.xlsx",
+    "att4": "附件4.xlsx",
+    "att2": "附件2.xlsx"
+  },
+  "figures": {
+    "att1_typical_day_power_price": {
+      "paths": {
+        "png": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att1_typical_day_power_price.png",
+        "pdf": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att1_typical_day_power_price.pdf",
+        "svg": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att1_typical_day_power_price.svg",
+        "paper_png": "C:/Users/Lenovo/Desktop/国赛/paper/figures/att1_typical_day_power_price.png"
+      },
+      "question": "Q1",
+      "source": "附件1",
+      "caption": "附件1典型日：(a) 10 min 负荷、光伏预测功率与净负荷；浅红带为电价最高 15% 时段。(b) 分时电价。负荷 111.02 MWh，光伏 55.48 MWh，净缺口 55.54 MWh，电价 0.37–1.40 元/kWh。",
+      "stats": {
+        "load_mwh": 111.02480809999999,
+        "pv_mwh": 55.482835666666666,
+        "net_mwh": 55.54197243333333,
+        "price_min": 0.3713,
+        "price_max": 1.3952,
+        "peak_quantile": 0.85,
+        "peak_hours": 3.666666666666667
+      }
+    },
+    "att2_load_pv_calendar": {
+      "paths": {
+        "png": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att2_load_pv_calendar.png",
+        "pdf": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att2_load_pv_calendar.pdf",
+        "svg": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att2_load_pv_calendar.svg",
+        "paper_png": "C:/Users/Lenovo/Desktop/国赛/paper/figures/att2_load_pv_calendar.png"
+      },
+      "question": "Q2/Q3",
+      "source": "附件2",
+      "caption": "附件2全年日历热图：(a) 小区负荷功率；(b) 光伏实测功率。横轴为一日 144 个 10 min 时段，纵轴为 2025-01-01 至 12-31。负荷 1996–7979 kW，光伏 0–10216 kW。",
+      "stats": {
+        "load_kw_min": 1995.7176,
+        "load_kw_max": 7978.8849,
+        "pv_kw_min": 0.0,
+        "pv_kw_max": 10216.2,
+        "days": 365
+      }
+    },
+    "att2_daily_energy_duration": {
+      "paths": {
+        "png": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att2_daily_energy_duration.png",
+        "pdf": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att2_daily_energy_duration.pdf",
+        "svg": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att2_daily_energy_duration.svg",
+        "paper_png": "C:/Users/Lenovo/Desktop/国赛/paper/figures/att2_daily_energy_duration.png"
+      },
+      "question": "Q2/Q3",
+      "source": "附件2",
+      "caption": "附件2能量结构：(a) 每日负荷电量（浅线）及负荷/光伏/净缺口的 7 日均值；(b) 全年 10 min 净负荷持续曲线，光伏过剩时段占 19.3%。年负荷 40524 MWh，年光伏 20251 MWh。",
+      "stats": {
+        "load_mwh_year": 40524.0549503,
+        "pv_mwh_year": 20251.242811683333,
+        "net_mwh_year": 20272.812138616668,
+        "surplus_time_frac": 0.19273211567732115,
+        "net_kw_p95": 5277.59734,
+        "net_kw_min": -6601.9911,
+        "net_kw_max": 6687.7481
+      }
+    },
+    "att2_seasonal_diurnal": {
+      "paths": {
+        "png": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att2_seasonal_diurnal.png",
+        "pdf": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att2_seasonal_diurnal.pdf",
+        "svg": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att2_seasonal_diurnal.svg",
+        "paper_png": "C:/Users/Lenovo/Desktop/国赛/paper/figures/att2_seasonal_diurnal.png"
+      },
+      "question": "Q2/Q3",
+      "source": "附件2",
+      "caption": "附件2四季日内曲线：各季 10 min 负荷（蓝）与光伏（金）的中位数及四分位带。夏季光伏显著抬升、夜间负荷仍高，表明储能需同时服务削峰与消纳。",
+      "stats": {
+        "ymax_kw": 8877.270125000001
+      }
+    },
+    "att3_pv_forecast_error": {
+      "paths": {
+        "png": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att3_pv_forecast_error.png",
+        "pdf": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att3_pv_forecast_error.pdf",
+        "svg": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att3_pv_forecast_error.svg",
+        "paper_png": "C:/Users/Lenovo/Desktop/国赛/paper/figures/att3_pv_forecast_error.png"
+      },
+      "question": "Q3",
+      "source": "附件3 vs 附件2",
+      "caption": "附件3光伏预报对照附件2实测整点均值：(a) 四个发布时刻按被预报钟点的 MAE，误差集中在日照时段；(b) 0:00 发布的全日平均预报曲线与实测均值。夜间 MAE 接近 0。0:00 发布全预见期平均 MAE 为 341 kW。",
+      "stats": {
+        "mae_0utc_mean": 340.57019308789955,
+        "mae_6_mean": 299.98812938737734,
+        "mae_12_mean": 382.76831100629107,
+        "mae_18_mean": 393.7461887002087,
+        "mae_0utc_lead1": 0.0,
+        "mae_0utc_lead24": 0.0
+      }
+    },
+    "att4_price_calendar": {
+      "paths": {
+        "png": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att4_price_calendar.png",
+        "pdf": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att4_price_calendar.pdf",
+        "svg": "C:/Users/Lenovo/Desktop/国赛/paper/assets/figures/att4_price_calendar.svg",
+        "paper_png": "C:/Users/Lenovo/Desktop/国赛/paper/figures/att4_price_calendar.png"
+      },
+      "question": "Q4",
+      "source": "附件4",
+      "caption": "附件4全年 10 min 电价：(a) 日历热图；(b) 日内中位数与四分位带，虚线为附件1典型日电价。电价 0.008–1.794 元/kWh。与附件1相关最高的日期为 2025-04-22（相关系数 0.992）。",
+      "stats": {
+        "price_min": 0.0076,
+        "price_max": 1.7936,
+        "price_mean": 0.7661976046423135,
+        "best_match_day_index": 111,
+        "best_match_date": "2025-04-22",
+        "best_match_corr": 0.992108604646754
+      }
+    }
+  },
+  "note": "Captions belong in LaTeX \\caption, not inside the artwork."
+}
