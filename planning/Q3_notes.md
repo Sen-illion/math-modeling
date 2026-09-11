@@ -62,3 +62,4 @@
 | 2026-09-11 | **重新冻结正式方案为 LA + 实测插值起点**；`PV_P0_MODE` 默认改 `"measured"`；正式候选集 N0/M1/M0 → N0/LA/M0L | 展望单独有效、实测起点全年更省；选择门要与 LA 同底才可比 | 正式总费用 **13519092.79 → 13458730.30** 元；紧急 57878.31 → 82228.36 kWh；`result3.xlsx`、三张论文表、`data_clean/Q3` 已重导出 | `code/Q3/config.py` `code/Q3/rolling.py` `code/Q3/run_q3.py` `results/Q3/` |
 | 2026-09-11 | 新增导出端独立门禁 `code/Q3/check_result3.py` | 原阶段 E 只靠写表代码自证，没有独立重算 | 从 `result3.xlsx` 单元格 + 附件 1 电价重算逐日合同费与偏差结算、SOC 平衡与跨日连续，全部通过 | `code/Q3/check_result3.py` |
 | 2026-09-11 | 清理旧口径残留 `M1_summary.json`、`M0_summary.json`（正式与 phase1） | 新候选集不含 M1/M0，留着会被误引 | 已删除；旧数字只在本表和执行计划第 7 节留档 | `results/Q3/` |
+| 2026-09-11 | 补分月稳健性对比（新 LA vs 旧 M1） | 收益只在 2025 单年测得，需看是否逐月都赢 | 11 个月里 9 个月更省；4 月 +8875.76、8 月 +2533.82 为例外；紧急电上升集中在 4–8 月 | `code/Q3/monthly_report.py` `results/Q3/exp/monthly_*` |
