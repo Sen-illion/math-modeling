@@ -1,0 +1,39 @@
+{
+  "M1": {
+    "n_days": 334,
+    "total_cost": 13519092.792762008,
+    "plan_only_cost": 12406621.129167462,
+    "emergency_cost": 286806.7267187654,
+    "emergency_kwh": 57878.3083855597,
+    "adj_purchase_kwh": 20742547.003722087,
+    "n_days_with_intraday_adjust": 334,
+    "elapsed_s": 107.34845710000081,
+    "leakage_errors": [],
+    "gate_errors": []
+  },
+  "TV": {
+    "n_days": 334,
+    "total_cost": 13512449.72348307,
+    "plan_only_cost": 12402676.047226531,
+    "emergency_cost": 281765.96541670733,
+    "emergency_kwh": 55489.34553459306,
+    "adj_purchase_kwh": 20744350.946181767,
+    "n_days_with_intraday_adjust": 334,
+    "elapsed_s": 115.8490931999986,
+    "leakage_errors": [],
+    "gate_errors": []
+  },
+  "LA": {
+    "n_days": 334,
+    "total_cost": 13505277.540089354,
+    "plan_only_cost": 12401933.764410023,
+    "emergency_cost": 274490.52528301,
+    "emergency_kwh": 53835.42040759311,
+    "adj_purchase_kwh": 20745747.06489047,
+    "n_days_with_intraday_adjust": 334,
+    "elapsed_s": 124.90204020000238,
+    "leakage_errors": [],
+    "gate_errors": []
+  },
+  "official_winner": "LA"
+}
