@@ -1,0 +1,22 @@
+{
+  "n_price_slots": 144,
+  "n_days": 365,
+  "date_start": "2025-01-01",
+  "date_end": "2025-12-31",
+  "forecast_days": 365,
+  "forecast_issues": [
+    0,
+    6,
+    12,
+    18
+  ],
+  "missing_load": 0,
+  "missing_pv": 0,
+  "load_kw_min": 1995.7176,
+  "load_kw_max": 7978.8849,
+  "pv_kw_min": 0.0,
+  "pv_kw_max": 10216.2,
+  "fc_kw_min": 0.0,
+  "fc_kw_max": 9995.8875,
+  "dt_hours": 0.16666666666666666
+}

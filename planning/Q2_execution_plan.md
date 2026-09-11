@@ -1,8 +1,10 @@
 # Q2 第一版：滚动预测 + 日前 LP + 实际 SOC 回测
 
+协作记录：共同假设见 [`modeling_notes.md`](modeling_notes.md)，本问细节见 [`Q2_notes.md`](Q2_notes.md)。
+
 状态：口径已按队员确认修订，代码第一阶段进行中
 适用问题：2026 国赛 C 题第二问
-工作分支：`task/q2-forecast-lp-soc`（不直接提交 `main`）
+工作分支：`task/integrate-q123`（不直接提交 `main`）
 
 ## 0. 已确认口径
 

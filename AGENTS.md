@@ -22,6 +22,7 @@
 - 禁止为解决冲突使用 `git push --force`、`git reset --hard`、`git checkout -- <file>` 或其他会丢弃队友修改的命令，除非用户明确指定要丢弃的文件和版本。
 - 不按子问题预先建立固定分支；问题通过 `code/Q1/`、`results/Q1/`、`paper/sections/q1.tex` 等目录区分，题目有几问就按实际创建到 `Qn`。分支按任务或功能建立，例如方法更新、代码修复或论文修订。
 - 每位成员负责自己认领的 `code/Qx/`、`results/Qx/` 和 `paper/sections/qx.tex`；新增问题时沿用同一命名规则。
+- 共同假设写在 `planning/modeling_notes.md`；各问方法细节和改口表写在 `planning/Qn_notes.md`，不要把三问记录堆回同一文件。日常开发使用 `task/integrate-q123`，`main` 仍只走 Pull Request。
 - `AGENTS.md`、`paper/main.tex`、`paper/common_setup.tex`、公共符号表和最终结论属于共享文件，修改前应通知队友并经过复核。
 - 每次提交只完成一个清晰任务，并在提交信息中说明内容。
 - 普通文字润色、临时探索和个人草稿可以不立即推送，但一旦影响方法、结果、图表、论文数字或下游写作，必须按上述同步规则提交并推送。
