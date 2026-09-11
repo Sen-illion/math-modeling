@@ -211,7 +211,7 @@ def run_phase(
             if rivals and metrics["oracle"]["total_cost"] - 1e-6 > min(rivals):
                 metrics["oracle"]["note"] = "oracle cost above best policy"
 
-    if phase == "official":
+    if phase == "official" and any(n != "oracle" for n in names):
         candidates = [n for n in names if n != "oracle"]
         winner = min(candidates, key=lambda n: metrics[n]["total_cost"])
         metrics["official_winner"] = winner
