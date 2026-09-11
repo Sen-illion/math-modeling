@@ -54,6 +54,8 @@ POLICIES = {
     # M2 bundles look-ahead with the terminal SOC term; LA and TV split them apart.
     "LA": Policy("LA", use_buffer=True, look_ahead=True, selective=False),
     "TV": Policy("TV", use_buffer=True, look_ahead=False, selective=False, use_terminal=True),
+    # Official selective-gate comparison, on the same look-ahead footing as LA.
+    "M0L": Policy("M0L", use_buffer=True, look_ahead=True, selective=True),
     "OS": Policy("OS", use_buffer=True, look_ahead=False, selective=False, one_sided=True),
     "H6": Policy("H6", use_buffer=True, look_ahead=False, selective=False, adjust_hours=(6,)),
     "H12": Policy("H12", use_buffer=True, look_ahead=False, selective=False, adjust_hours=(12,)),

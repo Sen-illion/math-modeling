@@ -102,9 +102,9 @@ def _policy_names(phase: str, override: str | None) -> list[str]:
             raise ValueError("empty --policies")
         return names
     if phase == "phase1":
-        return ["N0", "B0", "M1", "M2", "M0", "oracle"]
+        return ["N0", "B0", "M1", "TV", "LA", "M2", "M0L", "oracle"]
     if phase == "official":
-        return ["N0", "M1", "M0"]
+        return ["N0", "LA", "M0L"]
     raise ValueError("phase must be phase1 or official")
 
 
@@ -193,7 +193,7 @@ def run_phase(
         (out_dir / f"{name}_summary.json").write_text(
             json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
         )
-        if name in ("M0", "N0", "M1"):
+        if name in ("M0", "M0L", "N0", "M1", "LA"):
             jan1 = payload["records"][0]
             if abs(jan1["actual"]["soc0_kwh"] - 6000.0) > 1e-3:
                 raise RuntimeError("Jan 1 0:00 SOC != 6000")
@@ -206,9 +206,10 @@ def run_phase(
             raise RuntimeError(f"{name} leakage: {leak[:8]}")
         if gate:
             raise RuntimeError(f"{name} gate: {gate[:8]}")
-        if name == "oracle" and "M0" in metrics:
-            if metrics["oracle"]["total_cost"] - 1e-6 > metrics["M0"]["total_cost"]:
-                metrics["oracle"]["note"] = "oracle cost above M0"
+        if name == "oracle":
+            rivals = [c["total_cost"] for n, c in metrics.items() if n != "oracle"]
+            if rivals and metrics["oracle"]["total_cost"] - 1e-6 > min(rivals):
+                metrics["oracle"]["note"] = "oracle cost above best policy"
 
     if phase == "official":
         candidates = [n for n in names if n != "oracle"]

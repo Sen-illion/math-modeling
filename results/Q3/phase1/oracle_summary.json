@@ -6,7 +6,7 @@
   "emergency_kwh": 0.0022716197941281993,
   "adj_purchase_kwh": 968777.439269,
   "n_days_with_intraday_adjust": 0,
-  "elapsed_s": 4.788967999993474,
+  "elapsed_s": 3.453969500013045,
   "leakage_errors": [],
   "gate_errors": []
 }

@@ -47,8 +47,8 @@ XGB_PARAMS = {
     "verbosity": 0,
 }
 
-# Week-similar M1; only replace result3 if the new official winner is cheaper.
-PREVIOUS_OFFICIAL_M1_COST = 13670359.912618522
+# Previous frozen official total (M1, zero p0); only replace result3 if the new winner is cheaper.
+PREVIOUS_OFFICIAL_M1_COST = 13519092.792762008
 BETA_LOCK = 1.0
 BETA_OPEN = 0.2
 LOCK_SLOTS = 36
@@ -57,9 +57,9 @@ SELECT_EPS = 0.03
 ADJ_PV_L1_KWH = 3000.0
 SIGMA_MIN_SAMPLES = 3
 
-# 实验开关，默认值必须复现已冻结的 M1。"measured" 用发布前最后一个已完成时段的实测光伏
-# 作为小时预报的插值起点，代替把 6:00/18:00 的起点硬设为 0。
-PV_P0_MODE = "zero"
+# 插值起点口径。"measured" 是 2026-09-11 冻结值：取发布前最后一个已完成时段的实测光伏，
+# 代替把 6:00/18:00 的起点硬设为 0。"zero" 保留旧口径，只用于消融。
+PV_P0_MODE = "measured"
 PV_P0_MODES = ("zero", "measured")
 BETA_LOCK_GRID = (0.0, 0.5, 1.0, 1.5, 2.0)
 BETA_OPEN_GRID = (0.0, 0.2, 0.5, 1.0)
