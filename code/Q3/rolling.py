@@ -13,9 +13,13 @@ from config import (
     BETA_OPEN,
     DT_HOURS,
     E0_JAN1_KWH,
+    E_MAX_KWH,
+    E_MIN_KWH,
+    ETA_DISCHARGE,
     ISSUE_HOURS,
     LOCK_SLOTS,
     N_INTERVALS,
+    RESERVE_GAMMA,
     SELECT_EPS,
 )
 from load_forecast import forecast_day_kw, horizon_load_kw, tomorrow_forecast_kw
@@ -38,6 +42,7 @@ class Policy:
     beta_lock: float = BETA_LOCK
     beta_open: float = BETA_OPEN
     lock_slots: int = LOCK_SLOTS
+    reserve_gamma: float = RESERVE_GAMMA
 
 
 POLICIES = {
@@ -55,6 +60,20 @@ POLICIES = {
     "H18": Policy("H18", use_buffer=True, look_ahead=False, selective=False, adjust_hours=(18,)),
     "H612": Policy("H612", use_buffer=True, look_ahead=False, selective=False, adjust_hours=(6, 12)),
 }
+
+
+def plan_tracking_reserve(soc_plan_kwh: np.ndarray, gamma: float) -> np.ndarray:
+    """Stored energy to hold at each slot so playback follows the LP's SOC plan.
+
+    The LP already schedules the battery against the tariff, but playback then
+    discharges greedily at whatever deficit comes first, which spends the evening
+    peak's reserve during cheap hours. gamma=0 keeps the greedy rule shared with
+    Q2; gamma=1 forbids dropping below the planned trajectory.
+    """
+    if gamma <= 0.0:
+        return np.zeros(len(soc_plan_kwh))
+    reserve = gamma * np.maximum(np.asarray(soc_plan_kwh, dtype=float) - E_MIN_KWH, 0.0)
+    return np.minimum(reserve, E_MAX_KWH - E_MIN_KWH)
 
 
 def settlement(price: np.ndarray, g_plan: np.ndarray, g_adj: np.ndarray, emergency: np.ndarray) -> dict:
@@ -98,6 +117,7 @@ def run_day(
     emergency = np.zeros(N_INTERVALS)
     curtail = np.zeros(N_INTERVALS)
     soc_end = np.zeros(N_INTERVALS)
+    soc_plan = np.full(N_INTERVALS, E_MIN_KWH)
     load_kw_today = load_kwh[day] / DT_HOURS
 
     for iss, hour in enumerate(ISSUE_HOURS):
@@ -197,12 +217,18 @@ def run_day(
             )
             chosen = free
 
+        if chosen is not None:
+            soc_plan[start_slot:] = chosen["soc_end_kwh"][:n_today]
+
         if hour == 0:
             today_purchase = chosen["today_purchase_kwh"]
             g_plan = today_purchase.copy()
             g_adj = today_purchase.copy()
             if policy.no_adjust:
-                piece = simulate_range(load_kwh[day], pv_kwh[day], g_adj, soc, 0, N_INTERVALS)
+                reserve_day = plan_tracking_reserve(soc_plan, policy.reserve_gamma)
+                piece = simulate_range(
+                    load_kwh[day], pv_kwh[day], g_adj, soc, 0, N_INTERVALS, reserve_day
+                )
                 charge[:] = piece["charge_kwh"]
                 discharge[:] = piece["discharge_kwh"]
                 emergency[:] = piece["emergency_kwh"]
@@ -223,7 +249,10 @@ def run_day(
             g_adj[start_slot:] = chosen["today_purchase_kwh"]
 
         next_slot = N_INTERVALS if hour == ISSUE_HOURS[-1] else (hour + 6) * 6
-        piece = simulate_range(load_kwh[day], pv_kwh[day], g_adj, soc, start_slot, next_slot)
+        reserve_rest = plan_tracking_reserve(soc_plan[start_slot:next_slot], policy.reserve_gamma)
+        piece = simulate_range(
+            load_kwh[day], pv_kwh[day], g_adj, soc, start_slot, next_slot, reserve_rest
+        )
         charge[start_slot:next_slot] = piece["charge_kwh"]
         discharge[start_slot:next_slot] = piece["discharge_kwh"]
         emergency[start_slot:next_slot] = piece["emergency_kwh"]

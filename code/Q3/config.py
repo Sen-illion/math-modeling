@@ -64,6 +64,9 @@ PV_P0_MODES = ("zero", "measured")
 BETA_LOCK_GRID = (0.0, 0.5, 1.0, 1.5, 2.0)
 BETA_OPEN_GRID = (0.0, 0.2, 0.5, 1.0)
 
+# Playback SOC reserve. 0.0 keeps the price-blind greedy rule shared with Q2.
+RESERVE_GAMMA = 0.0
+
 ABS_TOL_KWH = 1e-3
 REL_TOL = 1e-4
 SIMULTANEOUS_TOL = 1e-4

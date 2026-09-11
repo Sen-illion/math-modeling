@@ -1,0 +1,15 @@
+{
+  "M1": {
+    "n_days": 334,
+    "total_cost": 13520886.569058552,
+    "plan_only_cost": 12406618.311433196,
+    "emergency_cost": 289425.40879310603,
+    "emergency_kwh": 58549.68124909304,
+    "adj_purchase_kwh": 20741743.799310084,
+    "n_days_with_intraday_adjust": 334,
+    "elapsed_s": 99.36914330000582,
+    "leakage_errors": [],
+    "gate_errors": []
+  },
+  "official_winner": "M1"
+}

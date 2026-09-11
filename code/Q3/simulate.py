@@ -27,8 +27,14 @@ def simulate_range(
     soc0: float,
     t0: int,
     t1: int,
+    reserve_soc_kwh: np.ndarray | None = None,
 ) -> dict:
-    """Dispatch slots [t0, t1) using only current-slot actuals. Emergency is not used to charge."""
+    """Dispatch slots [t0, t1) using only current-slot actuals. Emergency is not used to charge.
+
+    `reserve_soc_kwh` holds stored energy back from the current slot so it stays
+    available for a later, more expensive deficit. All zeros reproduces the
+    price-blind greedy rule shared with Q2.
+    """
     n = t1 - t0
     charge = np.zeros(n)
     discharge = np.zeros(n)
@@ -47,7 +53,9 @@ def simulate_range(
             charge[i] = min(surplus, charge_cap)
             curtail[i] = surplus - charge[i]
         else:
-            discharge_cap = min(P_MAX_KWH, max(0.0, ETA_DISCHARGE * (soc_prev - E_MIN_KWH)))
+            reserve = 0.0 if reserve_soc_kwh is None else float(reserve_soc_kwh[i])
+            usable = max(0.0, soc_prev - E_MIN_KWH - reserve)
+            discharge_cap = min(P_MAX_KWH, ETA_DISCHARGE * usable)
             discharge[i] = min(residual, discharge_cap)
             emergency[i] = residual - discharge[i]
         soc_prev = _clip_soc(soc_prev + ETA_CHARGE * charge[i] - discharge[i] / ETA_DISCHARGE)
