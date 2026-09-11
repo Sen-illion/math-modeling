@@ -1,20 +1,21 @@
 {
   "question": "Q1",
-  "created_at": "2026-09-10T13:45:18.324752+00:00",
+  "created_at": "2026-09-11T11:01:45.202067+00:00",
   "solver": "PULP_CBC_CMD",
   "status": "Optimal",
-  "elapsed_s": 0.03725050199955149,
+  "elapsed_s": 0.16469499999948312,
   "power_limit": "microgrid_interface_5000kW",
   "inputs": {
-    "attachment1": "/workspace/data_raw/Q1/attachment1.xlsx",
+    "attachment1": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\data_raw\\Q1\\attachment1.xlsx",
     "attachment1_sha256": "66b87134f5ecccd68184d3539bb1293ef039f9e0fdd955a589b9bfa7f227c377",
-    "template": "/workspace/data_raw/Q1/result1_template.xlsx",
+    "template": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\data_raw\\Q1\\result1_template.xlsx",
     "template_sha256": "28360e0974e7d6065394a8aba4e14a86773ae0036cc7d3ea1b211b515b03d688"
   },
   "profile": {
     "n_intervals": 144,
     "dt_hours": 0.16666666666666666,
-    "source": "/workspace/data_raw/Q1/attachment1.xlsx",
+    "source": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\data_raw\\Q1\\attachment1.xlsx",
+    "alignment": "start_clock_rotated_to_calendar",
     "load_energy_kwh": 111024.8081,
     "pv_energy_kwh": 55482.835666666666,
     "net_load_energy_kwh": 55541.97243333333,
@@ -25,8 +26,8 @@
   "metrics": {
     "B0": {
       "name": "B0",
-      "purchase_kwh": 61789.9354,
-      "cost": 48052.04659084666,
+      "purchase_kwh": 61789.935399999995,
+      "cost": 48052.046590846665,
       "charge_kwh": 0.0,
       "discharge_kwh": 0.0,
       "curtail_kwh": 6247.962966666666,
@@ -37,10 +38,10 @@
     },
     "B1": {
       "name": "B1",
-      "purchase_kwh": 62708.51696666666,
-      "cost": 38683.82913271333,
-      "charge_kwh": 16757.13159259259,
-      "discharge_kwh": 16757.131592592592,
+      "purchase_kwh": 62581.8503,
+      "cost": 38870.131799380004,
+      "charge_kwh": 16157.131592592588,
+      "discharge_kwh": 16157.131592592592,
       "curtail_kwh": 3628.927863786011,
       "soc0_kwh": 6000.0,
       "soc24_kwh": 5999.999999999999,
@@ -49,8 +50,8 @@
     },
     "M0": {
       "name": "M0",
-      "purchase_kwh": 59482.6989,
-      "cost": 35126.948548219996,
+      "purchase_kwh": 59482.69891,
+      "cost": 35126.848552497,
       "charge_kwh": 18666.59952,
       "discharge_kwh": 18666.599541,
       "curtail_kwh": 0.0,
@@ -61,14 +62,14 @@
     }
   },
   "outputs": {
-    "result1_xlsx": "/workspace/results/Q1/result1.xlsx",
-    "table1_csv": "/workspace/results/Q1/table1.csv",
-    "table2_csv": "/workspace/results/Q1/table2.csv",
+    "result1_xlsx": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q1\\result1.xlsx",
+    "table1_csv": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q1\\table1.csv",
+    "table2_csv": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q1\\table2.csv",
     "figures": [
-      "/workspace/results/Q1/figures/Q1_price_load_pv.png",
-      "/workspace/results/Q1/figures/Q1_purchase_soc.png",
-      "/workspace/results/Q1/figures/Q1_charge_discharge.png",
-      "/workspace/results/Q1/figures/Q1_baseline_cost.png"
+      "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q1\\figures\\Q1_price_load_pv.png",
+      "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q1\\figures\\Q1_purchase_soc.png",
+      "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q1\\figures\\Q1_charge_discharge.png",
+      "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q1\\figures\\Q1_baseline_cost.png"
     ]
   }
 }
