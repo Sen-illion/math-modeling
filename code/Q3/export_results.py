@@ -28,6 +28,13 @@ def _block_sums(end_min: np.ndarray, values: np.ndarray) -> dict[str, float]:
     return totals
 
 
+def _label(minutes: int) -> str:
+    if minutes >= 24 * 60:
+        return "24:00"
+    hour, minute = divmod(int(minutes), 60)
+    return f"{hour}:{minute:02d}"
+
+
 def merge_emergency(date_str: str, emergency: np.ndarray, end_min: np.ndarray) -> list[dict]:
     rows = []
     t = 0
@@ -53,11 +60,45 @@ def merge_emergency(date_str: str, emergency: np.ndarray, end_min: np.ndarray) -
     return rows
 
 
-def _label(minutes: int) -> str:
-    if minutes >= 24 * 60:
-        return "24:00"
-    hour, minute = divmod(int(minutes), 60)
-    return f"{hour}:{minute:02d}"
+def _clock_to_minutes(part: str) -> tuple[int, bool]:
+    text = str(part).strip().replace("：", ":").replace(" ", "")
+    next_day = "+1" in text
+    text = text.replace("+1", "")
+    hour_s, minute_s = (text.split(":") + ["0"])[:2]
+    minutes = int(hour_s) * 60 + int(minute_s)
+    return minutes, next_day
+
+
+def template_header_slot(header: str) -> tuple[int, int]:
+    """Map a template interval label to (day_offset, slot). Slot uses 0:00-0:10 as 0."""
+    text = str(header).strip().replace("：", ":")
+    left, right = text.split("-", 1)
+    start_m, start_next = _clock_to_minutes(left)
+    end_m, end_next = _clock_to_minutes(right)
+    if end_next and end_m == 0:
+        end_m = 24 * 60
+    if start_next or (end_next and start_m == 0 and end_m == 10):
+        return 1, 0
+    if end_m % 10 != 0 or end_m < 10:
+        raise ValueError(f"cannot parse template header {header}")
+    slot = end_m // 10 - 1
+    if slot < 0 or slot >= N_INTERVALS:
+        raise ValueError(f"slot out of range for {header}")
+    return 0, slot
+
+
+def _series_for_headers(official: list[dict], day_idx: int, headers: list[str], key: str) -> np.ndarray:
+    rec = official[day_idx]
+    nxt = official[day_idx + 1] if day_idx + 1 < len(official) else None
+    out = np.zeros(len(headers), dtype=float)
+    for i, header in enumerate(headers):
+        day_off, slot = template_header_slot(header)
+        src = rec if day_off == 0 else nxt
+        if src is None:
+            out[i] = 0.0
+        else:
+            out[i] = float(src[key][slot])
+    return out
 
 
 def export_result3(official: list[dict], end_min: np.ndarray, dest: Path | None = None) -> Path:
@@ -73,13 +114,19 @@ def export_result3(official: list[dict], end_min: np.ndarray, dest: Path | None 
     n_days = len(official)
     if plan_ws.max_row - 1 < n_days:
         raise ValueError(f"plan template rows {plan_ws.max_row - 1} < {n_days}")
+    plan_headers = [plan_ws.cell(1, t + 2).value for t in range(N_INTERVALS)]
+    adj_headers = [adj_ws.cell(1, t + 2).value for t in range(N_INTERVALS)]
+    if plan_headers != adj_headers:
+        raise ValueError("plan/adjust template time headers differ")
+    for h in plan_headers:
+        template_header_slot(str(h))
 
     for i, rec in enumerate(official):
         row = i + 2
         plan_ws.cell(row, 1).value = rec["date"]
         adj_ws.cell(row, 1).value = rec["date"]
-        g_plan = rec["g_plan_kwh"]
-        g_adj = rec["g_adj_kwh"]
+        g_plan = _series_for_headers(official, i, plan_headers, "g_plan_kwh")
+        g_adj = _series_for_headers(official, i, adj_headers, "g_adj_kwh")
         for t in range(N_INTERVALS):
             plan_ws.cell(row, t + 2).value = float(g_plan[t])
             adj_ws.cell(row, t + 2).value = float(g_adj[t])

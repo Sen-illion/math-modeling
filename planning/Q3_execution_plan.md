@@ -30,7 +30,7 @@
    - \(\beta_{\mathrm{lock}}=1.0\)，\(\beta_{\mathrm{open}}=0.2\)；\(\sigma\) 只用过去日。
    - **M2**（只作阶段 1 消融）：余量 + 展望 + 每次都调，不作正式结果。
    - `result3.xlsx` 冻结为 N0/M1/M0 中全年总费用最低者。
-10. **填表**：`result3.xlsx` 按列序与附件 2 的 144 列对齐。计划表「全天购电费」= \(\sum\pi G^{\mathrm{plan}}\)；调整表「全天购电费」= 偏差结算 + 紧急费。充放电与紧急购电按 334 天展开。
+10. **填表**：`result3.xlsx` 的 144 个时刻列按**模板表头区间**填写：`0:10-0:20` 填当天 `0:10–0:20`，最后一列 `0:00-0:10+1` 填次日 `0:00–0:10`。优化与结算仍按当天 `0:00–24:00`。计划表「全天购电费」= 当天 \(\sum\pi G^{\mathrm{plan}}\)；调整表「全天购电费」= 当天偏差结算 + 紧急费。充放电与紧急购电按 334 天展开。
 
 ## 1. 目录与产物
 
@@ -137,11 +137,11 @@ E_t=E_{t-1}+0.9 c_t-d_t/0.9,\quad
 
 ## 5. 提交切分
 
-修订提交（相对第一版）：
+本轮提交：
 
-1. `method(Q3): drop look-ahead and add no-adjust baseline`
-2. `code(Q3): revise rolling policies N0/M1/M0`
-3. `results(Q3): refresh result3 from cheapest official policy`
+1. `method(Q3): use causal XGB load with attachment-3 PV`
+2. `code(Q3): add expanding XGB load forecast`
+3. `results(Q3): freeze M1 after XGB load beats week-similar`
 
 ## 6. 完成定义
 
