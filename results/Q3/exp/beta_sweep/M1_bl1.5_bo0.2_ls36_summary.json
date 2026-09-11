@@ -1,0 +1,12 @@
+{
+  "n_days": 14,
+  "total_cost": 642689.6653346857,
+  "plan_only_cost": 603515.0700718302,
+  "emergency_cost": 21085.014212205893,
+  "emergency_kwh": 4002.9619634666624,
+  "adj_purchase_kwh": 991166.9951770001,
+  "n_days_with_intraday_adjust": 14,
+  "elapsed_s": 16.68641929999285,
+  "leakage_errors": [],
+  "gate_errors": []
+}
