@@ -25,12 +25,15 @@ from config import (
     ATTACHMENT2_XLSX,
     ATTACHMENT3_XLSX,
     CLEAN_DIR,
+    EXP_DIR,
     LOG_DIR,
     OFFICIAL_END,
     OFFICIAL_START,
     PHASE1_DIR,
     PHASE1_END,
     PREVIOUS_OFFICIAL_M1_COST,
+    PV_P0_MODE,
+    PV_P0_MODES,
     RESULT3_TEMPLATE_XLSX,
     RESULT_DIR,
 )
@@ -59,7 +62,7 @@ def _day_index(dates, stamp: str) -> int:
     return int(hits[0])
 
 
-def load_bundle() -> dict:
+def load_bundle(p0_mode: str = PV_P0_MODE, write: bool = True) -> dict:
     prices = load_prices()
     year = load_year_actuals(
         jan1_load=float(prices["typical_load_kw"].iloc[0]),
@@ -71,10 +74,13 @@ def load_bundle() -> dict:
     if y_dates != f_dates:
         raise ValueError("attachment 2/3 dates do not align")
     audit = audit_data(prices, year, forecasts)
-    write_clean(prices, year, forecasts, audit)
-    interp = interpolate_all(forecasts["hourly_kw"])
+    audit["pv_p0_mode"] = p0_mode
+    interp = interpolate_all(forecasts["hourly_kw"], year["pv_kw"], p0_mode)
     aligned = aligned_actual_pv(year["pv_kw"], interp)
-    np.save(CLEAN_DIR / "pv_interp_10min.npy", interp)
+    if write:
+        # Frozen clean artifacts describe the frozen p0 rule only.
+        write_clean(prices, year, forecasts, audit)
+        np.save(CLEAN_DIR / "pv_interp_10min.npy", interp)
     typical = prices["typical_load_kw"].to_numpy(dtype=float)
     ensure_xgb_load(np.asarray(year["load_kw"], dtype=float), year["dates"], typical)
     return {
@@ -100,17 +106,24 @@ def _policy_names(phase: str, override: str | None) -> list[str]:
     raise ValueError("phase must be phase1 or official")
 
 
-def run_phase(bundle: dict, phase: str, policy_names: list[str] | None = None, export: bool = True) -> dict:
+def run_phase(
+    bundle: dict,
+    phase: str,
+    policy_names: list[str] | None = None,
+    export: bool = True,
+    out_dir: Path | None = None,
+) -> dict:
     dates = bundle["year"]["dates"]
     start_day = _day_index(dates, OFFICIAL_START)
     if phase == "phase1":
         end_day = _day_index(dates, PHASE1_END) + 1
-        out_dir = PHASE1_DIR
+        default_dir = PHASE1_DIR
     elif phase == "official":
         end_day = _day_index(dates, OFFICIAL_END) + 1
-        out_dir = RESULT_DIR
+        default_dir = RESULT_DIR
     else:
         raise ValueError("phase must be phase1 or official")
+    out_dir = out_dir or default_dir
     out_dir.mkdir(parents=True, exist_ok=True)
 
     price144 = bundle["prices"]["price"].to_numpy(dtype=float)
@@ -222,15 +235,32 @@ def main() -> int:
     parser.add_argument("--phase", choices=("phase1", "official"), default="phase1")
     parser.add_argument("--policies", default=None, help="comma-separated policy names")
     parser.add_argument("--no-export", action="store_true", help="do not overwrite result3.xlsx")
+    parser.add_argument(
+        "--out-dir",
+        default=None,
+        help="write under results/Q3/exp/<name> instead of the frozen directories",
+    )
+    parser.add_argument("--pv-p0", choices=PV_P0_MODES, default=PV_P0_MODE)
     args = parser.parse_args()
+    if args.out_dir and not args.no_export:
+        raise SystemExit("--out-dir is for experiments; pass --no-export as well")
+    if args.pv_p0 != PV_P0_MODE and not args.out_dir:
+        raise SystemExit("--pv-p0 changes the frozen inputs; route it to --out-dir")
     RESULT_DIR.mkdir(parents=True, exist_ok=True)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     started = time.perf_counter()
-    bundle = load_bundle()
+    exp_dir = (EXP_DIR / args.out_dir) if args.out_dir else None
+    bundle = load_bundle(p0_mode=args.pv_p0, write=exp_dir is None)
     names = _policy_names(args.phase, args.policies)
-    result = run_phase(bundle, args.phase, policy_names=names, export=not args.no_export)
+    result = run_phase(
+        bundle,
+        args.phase,
+        policy_names=names,
+        export=not args.no_export,
+        out_dir=exp_dir,
+    )
     elapsed = time.perf_counter() - started
-    out_dir = PHASE1_DIR if args.phase == "phase1" else RESULT_DIR
+    out_dir = exp_dir or (PHASE1_DIR if args.phase == "phase1" else RESULT_DIR)
     metrics_out = dict(result["metrics"])
     manifest_path = out_dir / "run_manifest.json"
     if args.policies and manifest_path.exists():
@@ -256,12 +286,17 @@ def main() -> int:
         "audit": bundle["audit"],
         "metrics": metrics_out,
         "ran_policies": names,
+        "pv_p0_mode": args.pv_p0,
     }
     freeze = result["metrics"].get("freeze_official")
     if args.no_export:
         (out_dir / "ablation_metrics.json").write_text(
             json.dumps(result["metrics"], ensure_ascii=False, indent=2), encoding="utf-8"
         )
+        if exp_dir is not None:
+            manifest_path.write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
     elif args.phase == "official" and freeze is False:
         (RESULT_DIR / "candidate_run_manifest.json").write_text(
             json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"

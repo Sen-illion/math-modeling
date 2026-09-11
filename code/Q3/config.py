@@ -57,6 +57,13 @@ SELECT_EPS = 0.03
 ADJ_PV_L1_KWH = 3000.0
 SIGMA_MIN_SAMPLES = 3
 
+# 实验开关，默认值必须复现已冻结的 M1。"measured" 用发布前最后一个已完成时段的实测光伏
+# 作为小时预报的插值起点，代替把 6:00/18:00 的起点硬设为 0。
+PV_P0_MODE = "zero"
+PV_P0_MODES = ("zero", "measured")
+BETA_LOCK_GRID = (0.0, 0.5, 1.0, 1.5, 2.0)
+BETA_OPEN_GRID = (0.0, 0.2, 0.5, 1.0)
+
 ABS_TOL_KWH = 1e-3
 REL_TOL = 1e-4
 SIMULTANEOUS_TOL = 1e-4
@@ -77,6 +84,7 @@ RESULT3_TEMPLATE_XLSX = REPO_ROOT / "data_raw" / "Q3" / "result3_template.xlsx"
 CLEAN_DIR = REPO_ROOT / "data_clean" / "Q3"
 RESULT_DIR = REPO_ROOT / "results" / "Q3"
 PHASE1_DIR = RESULT_DIR / "phase1"
+EXP_DIR = RESULT_DIR / "exp"
 LOG_DIR = RESULT_DIR / "logs"
 ASSET_TABLE_DIR = REPO_ROOT / "paper" / "assets" / "tables"
 

@@ -60,6 +60,27 @@ def apply_morning_ratio(forecast_kw: np.ndarray, actual_today_kw: np.ndarray, st
     return out
 
 
+def tomorrow_forecast_kw(
+    load_kw: np.ndarray,
+    dates,
+    typical_kw: np.ndarray,
+    day: int,
+) -> np.ndarray:
+    """Next-day load as knowable at any issue time of `day`.
+
+    The 0:00 XGB model is unusable here: its lag_1d feature is the *whole* of
+    day `day`, which has not finished yet at 6:00. Fall back to the same
+    weekday one week before the target, which closed on day-6.
+    """
+    src = day + 1 - 7
+    if src < 0 or src > day - 1:
+        return np.asarray(typical_kw, dtype=float).copy()
+    n_days = load_kw.shape[0]
+    if src >= n_days:
+        return np.asarray(typical_kw, dtype=float).copy()
+    return load_kw[src].copy()
+
+
 def horizon_load_kw(
     load_kw: np.ndarray,
     dates,
@@ -72,8 +93,11 @@ def horizon_load_kw(
     today = forecast_day_kw(load_kw, day, dates, typical_kw)
     if actual_today_kw is not None and start_slot > 0:
         today = apply_morning_ratio(today, actual_today_kw, start_slot)
-    tomorrow = forecast_day_kw(load_kw, day + 1, dates, typical_kw)
-    wrapped = np.concatenate([today[start_slot:], tomorrow[:start_slot]])
+    head = today[start_slot:]
+    if n_horizon <= len(head):
+        return head[:n_horizon].copy()
+    tomorrow = tomorrow_forecast_kw(load_kw, dates, typical_kw, day)
+    wrapped = np.concatenate([head, tomorrow])
     if len(wrapped) < n_horizon:
         raise ValueError("load horizon shorter than requested")
     return wrapped[:n_horizon]

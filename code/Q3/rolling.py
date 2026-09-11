@@ -18,7 +18,7 @@ from config import (
     N_INTERVALS,
     SELECT_EPS,
 )
-from load_forecast import forecast_day_kw, horizon_load_kw
+from load_forecast import forecast_day_kw, horizon_load_kw, tomorrow_forecast_kw
 from model_lp import solve_rolling_lp
 from pv_forecast import conservative_pv_kwh
 from simulate import simulate_range, simulate_day, validate_actual
@@ -34,6 +34,10 @@ class Policy:
     use_terminal: bool = False
     one_sided: bool = False
     adjust_hours: tuple[int, ...] = (6, 12, 18)
+    terminal_lambda: float = 0.4
+    beta_lock: float = BETA_LOCK
+    beta_open: float = BETA_OPEN
+    lock_slots: int = LOCK_SLOTS
 
 
 POLICIES = {
@@ -42,6 +46,9 @@ POLICIES = {
     "M1": Policy("M1", use_buffer=True, look_ahead=False, selective=False),
     "M2": Policy("M2", use_buffer=True, look_ahead=True, selective=False, use_terminal=True),
     "M0": Policy("M0", use_buffer=True, look_ahead=False, selective=True),
+    # M2 bundles look-ahead with the terminal SOC term; LA and TV split them apart.
+    "LA": Policy("LA", use_buffer=True, look_ahead=True, selective=False),
+    "TV": Policy("TV", use_buffer=True, look_ahead=False, selective=False, use_terminal=True),
     "OS": Policy("OS", use_buffer=True, look_ahead=False, selective=False, one_sided=True),
     "H6": Policy("H6", use_buffer=True, look_ahead=False, selective=False, adjust_hours=(6,)),
     "H12": Policy("H12", use_buffer=True, look_ahead=False, selective=False, adjust_hours=(12,)),
@@ -110,13 +117,17 @@ def run_day(
         pv_point = interp_kw[day, iss, :n_horizon]
         if policy.use_buffer:
             pv_h = conservative_pv_kwh(
-                pv_point, sigma[iss, :n_horizon], BETA_LOCK, BETA_OPEN, LOCK_SLOTS
+                pv_point,
+                sigma[iss, :n_horizon],
+                policy.beta_lock,
+                policy.beta_open,
+                policy.lock_slots,
             )
         else:
             pv_h = np.maximum(pv_point, 0.0) * DT_HOURS
 
         plan_slice = None if hour == 0 else g_plan[start_slot:]
-        term = 0.4 if policy.use_terminal else 0.0
+        term = policy.terminal_lambda if policy.use_terminal else 0.0
         take_free = True
         keep_obj = None
         pv_l1 = 0.0
@@ -260,6 +271,12 @@ def run_day(
         # allowed only if last week coincidentally equals today
         pass
 
+    load_fc_tomorrow = (
+        tomorrow_forecast_kw(load_kwh / DT_HOURS, dates, typical_load_kw, day)
+        if policy.look_ahead
+        else None
+    )
+
     return {
         "g_plan_kwh": g_plan,
         "g_adj_kwh": g_adj,
@@ -268,6 +285,7 @@ def run_day(
         "soc24_kwh": float(soc),
         "updates": updates,
         "load_fc0_kw": load_fc0,
+        "load_fc_tomorrow_kw": load_fc_tomorrow,
     }
 
 
@@ -297,6 +315,7 @@ def run_oracle_day(price144, load_kwh_day, pv_kwh_day, soc0: float) -> dict:
         "soc24_kwh": actual["soc24_kwh"],
         "updates": [{"hour": 0, "adjusted": True, "objective": plan["objective"], "keep_objective": None}],
         "load_fc0_kw": None,
+        "load_fc_tomorrow_kw": None,
     }
 
 

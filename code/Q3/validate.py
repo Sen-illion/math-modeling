@@ -15,7 +15,7 @@ from config import (
     OFFICIAL_START,
     REL_TOL,
 )
-from load_forecast import forecast_day_kw
+from load_forecast import forecast_day_kw, tomorrow_forecast_kw
 from simulate import validate_actual
 
 
@@ -59,6 +59,16 @@ def leakage_errors(records: list[dict], load_kwh: np.ndarray, dates, typical_kw:
                 load_kw[day - 7], load_kw[day], atol=1e-12, rtol=0
             ):
                 errors.append(f"day {day} 0:00 load forecast leaked today's actual")
+        fc_tomorrow = rec.get("load_fc_tomorrow_kw")
+        if fc_tomorrow is not None:
+            expected_next = tomorrow_forecast_kw(load_kw, dates, typical_kw, day)
+            if not np.allclose(fc_tomorrow, expected_next, atol=1e-8, rtol=0):
+                errors.append(f"day {day} look-ahead load forecast is not the causal next-day model")
+            if day + 1 < n_days and np.allclose(fc_tomorrow, load_kw[day + 1], atol=1e-12, rtol=0):
+                src = day - 6
+                coincidence = src >= 0 and np.allclose(load_kw[src], load_kw[day + 1], atol=1e-12, rtol=0)
+                if not coincidence:
+                    errors.append(f"day {day} look-ahead forecast leaked tomorrow's actual")
         if rec["updates"][0]["hour"] != 0:
             errors.append(f"day {day} missing 0:00 update")
         if not np.allclose(rec["g_plan_kwh"][:36], rec["g_adj_kwh"][:36], atol=ABS_TOL_KWH, rtol=0):

@@ -9,26 +9,50 @@ from config import (
     ISSUE_HOURS,
     ISSUE_P0_ZERO,
     N_INTERVALS,
+    PV_P0_MODE,
+    PV_P0_MODES,
     SIGMA_MIN_SAMPLES,
 )
 
 
-def interpolate_issue(fc24: np.ndarray, issue_h: int) -> np.ndarray:
-    p0 = 0.0 if issue_h in ISSUE_P0_ZERO else float(fc24[0])
+def interpolate_issue(fc24: np.ndarray, issue_h: int, p0_kw: float | None = None) -> np.ndarray:
+    if p0_kw is None:
+        p0 = 0.0 if issue_h in ISSUE_P0_ZERO else float(fc24[0])
+    else:
+        p0 = max(0.0, float(p0_kw))
     knots_x = np.arange(0.0, 25.0)
     knots_y = np.concatenate([[p0], np.asarray(fc24, dtype=float)])
     offsets = np.arange(N_INTERVALS) / 6.0
     return np.maximum(np.interp(offsets, knots_x, knots_y), 0.0)
 
 
-def interpolate_all(hourly_kw: np.ndarray) -> np.ndarray:
+def measured_p0_kw(actual_kw: np.ndarray, day: int, issue_h: int) -> float:
+    """Last fully completed 10-minute mean before the issue clock."""
+    slot = issue_h * 6 - 1
+    if slot >= 0:
+        return float(actual_kw[day, slot])
+    if day > 0:
+        return float(actual_kw[day - 1, N_INTERVALS - 1])
+    return 0.0
+
+
+def interpolate_all(
+    hourly_kw: np.ndarray,
+    actual_kw: np.ndarray | None = None,
+    p0_mode: str = PV_P0_MODE,
+) -> np.ndarray:
     n_days, n_issues, n_h = hourly_kw.shape
     if n_issues != len(ISSUE_HOURS) or n_h != 24:
         raise ValueError("hourly forecast shape must be (days, 4, 24)")
+    if p0_mode not in PV_P0_MODES:
+        raise ValueError(f"p0_mode must be one of {PV_P0_MODES}")
+    if p0_mode == "measured" and actual_kw is None:
+        raise ValueError("measured p0 needs the actual PV series")
     out = np.zeros((n_days, n_issues, N_INTERVALS))
     for d in range(n_days):
         for i, hour in enumerate(ISSUE_HOURS):
-            out[d, i] = interpolate_issue(hourly_kw[d, i], hour)
+            p0 = measured_p0_kw(actual_kw, d, hour) if p0_mode == "measured" else None
+            out[d, i] = interpolate_issue(hourly_kw[d, i], hour, p0)
     return out
 
 
