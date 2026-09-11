@@ -23,6 +23,17 @@ def baseline_7d(mat: np.ndarray, day: int, fallback: np.ndarray) -> np.ndarray:
     return window.mean(axis=0)
 
 
+def weekly_dow(mat: np.ndarray, day: int, dates: pd.Series, fallback: np.ndarray) -> np.ndarray:
+    """Same-weekday same-slot mean using only days < D. Falls back to 7-day mean if <2 samples."""
+    if day <= 0:
+        return fallback.copy()
+    target = int(pd.Timestamp(dates.iloc[day]).dayofweek)
+    idx = [i for i in range(day) if int(pd.Timestamp(dates.iloc[i]).dayofweek) == target]
+    if len(idx) < 2:
+        return baseline_7d(mat, day, fallback)
+    return np.asarray(mat[idx], dtype=float).mean(axis=0)
+
+
 def _window_mean(mat: np.ndarray, day: int, width: int) -> np.ndarray:
     window = _available_window(mat, day, width)
     if len(window) == 0:

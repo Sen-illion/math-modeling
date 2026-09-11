@@ -1,0 +1,82 @@
+{
+  "candidates": [
+    {
+      "id": "G0",
+      "lambda": 1.0,
+      "risk": "split",
+      "adaptive": true,
+      "note": "official D_pv7d_adaptive replay"
+    },
+    {
+      "id": "G1",
+      "lambda": 1.0,
+      "risk": "split",
+      "adaptive": false,
+      "note": "fixed q=0.8, pure XGB"
+    },
+    {
+      "id": "G2",
+      "lambda": 0.5,
+      "risk": "split",
+      "adaptive": false,
+      "note": "fixed q=0.8, 50% weekly + 50% XGB"
+    },
+    {
+      "id": "G3a",
+      "lambda": 0.3,
+      "risk": "split",
+      "adaptive": false,
+      "note": "fixed q=0.8, 30% XGB"
+    },
+    {
+      "id": "G3b",
+      "lambda": 0.7,
+      "risk": "split",
+      "adaptive": false,
+      "note": "fixed q=0.8, 70% XGB"
+    },
+    {
+      "id": "G4",
+      "lambda": 1.0,
+      "risk": "net",
+      "adaptive": false,
+      "note": "pure XGB, net-load alpha=0.8"
+    },
+    {
+      "id": "G5",
+      "lambda": 0.5,
+      "risk": "net",
+      "adaptive": false,
+      "note": "50% mix, net-load alpha=0.8"
+    }
+  ],
+  "windows": [
+    [
+      "tune",
+      "2025-02-01",
+      "2025-06-30"
+    ],
+    [
+      "inner",
+      "2025-02-01",
+      "2025-04-30"
+    ],
+    [
+      "select",
+      "2025-05-01",
+      "2025-06-30"
+    ],
+    [
+      "oos",
+      "2025-07-01",
+      "2025-12-31"
+    ],
+    [
+      "full",
+      "2025-02-01",
+      "2025-12-31"
+    ]
+  ],
+  "note": "Declared before the year replay. Mix is weekly-dow x XGB at the point layer. Net risk uses one residual on L-P. Does not overwrite result2.xlsx.",
+  "official_cost": 13697499.169779435
+}

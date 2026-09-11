@@ -1,0 +1,28 @@
+{
+  "winners": [
+    "G4"
+  ],
+  "pool": [
+    {
+      "id": "P_official",
+      "lambda": 1.0,
+      "risk": "split",
+      "adaptive": true,
+      "note": "D_pv7d_adaptive"
+    },
+    {
+      "id": "P_G1",
+      "lambda": 1.0,
+      "risk": "split",
+      "adaptive": false,
+      "note": "fixed q=0.8 pure XGB"
+    },
+    {
+      "id": "P_best_net_fixed",
+      "lambda": 1.0,
+      "risk": "net",
+      "adaptive": false,
+      "note": "best net OOS G4"
+    }
+  ]
+}

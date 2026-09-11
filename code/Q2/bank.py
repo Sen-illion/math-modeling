@@ -27,11 +27,11 @@ from config import (
     N_INTERVALS,
     XGB_PARAMS,
 )
-from forecast import apply_pv_night_zero, clip_nonneg
+from forecast import apply_pv_night_zero, clip_nonneg, weekly_dow
 
 BANK_MODEL = "xgb_expanding"
 BANK_PV_SOURCE = "baseline_7d"
-BANK_FORMAT = 1
+BANK_FORMAT = 2
 
 
 def _file_digest(path: Path) -> str:
@@ -62,6 +62,7 @@ def _to_arrays(point: list[dict]) -> dict:
         "days": np.array([int(p["day"]) for p in point], dtype=np.int32),
         "dates": np.array([str(p["date"]) for p in point]),
         "load_kw": np.vstack([np.asarray(p["load_kw"], dtype=float) for p in point]),
+        "load_weekly_kw": np.vstack([np.asarray(p["load_weekly_kw"], dtype=float) for p in point]),
         "pv_kw": np.vstack([np.asarray(p["pv_kw"], dtype=float) for p in point]),
         "xgb_used": np.array([bool(p["xgb_used"]) for p in point]),
     }
@@ -71,6 +72,7 @@ def _from_arrays(data) -> list[dict]:
     days = data["days"]
     dates = data["dates"]
     load_kw = data["load_kw"]
+    weekly = data["load_weekly_kw"]
     pv_kw = data["pv_kw"]
     xgb_used = data["xgb_used"]
     return [
@@ -78,6 +80,7 @@ def _from_arrays(data) -> list[dict]:
             "day": int(days[i]),
             "date": str(dates[i]),
             "load_kw": np.asarray(load_kw[i], dtype=float),
+            "load_weekly_kw": np.asarray(weekly[i], dtype=float),
             "pv_kw": np.asarray(pv_kw[i], dtype=float),
             "xgb_used": bool(xgb_used[i]),
             "pv_source": BANK_PV_SOURCE,
@@ -126,6 +129,11 @@ def load_point_bank(
         pv_source=BANK_PV_SOURCE,
     )
     print(f"forecast bank: fitted in {time.perf_counter() - t0:.1f}s", flush=True)
+    fallback = prices["typical_load_kw"].to_numpy(dtype=float) if "typical_load_kw" in prices.columns else year["load_kw"][0]
+    dates = year["dates"]
+    for pred in point:
+        day = int(pred["day"])
+        pred["load_weekly_kw"] = weekly_dow(year["load_kw"], day, dates, fallback)
     CLEAN_DIR.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(FORECAST_BANK_NPZ, fingerprint=want, **_to_arrays(point))
     print("forecast bank: cached to", FORECAST_BANK_NPZ, flush=True)
@@ -159,6 +167,44 @@ def bias_bank(point: list[dict], year: dict, q_load, q_pv) -> list[dict]:
         row = dict(pred)
         row["load_kw"] = clip_nonneg(load_plan)
         row["pv_kw"] = clip_nonneg(apply_pv_night_zero(pv_plan, year["pv_kw"][:day]))
+        out.append(row)
+    return out
+
+
+def mix_point(point: list[dict], lam: float) -> list[dict]:
+    """Blend weekly and XGB load at the point-forecast layer. lam=1 is pure XGB."""
+    lam = float(lam)
+    out = []
+    for pred in point:
+        row = dict(pred)
+        xgb = np.asarray(pred["load_kw"], dtype=float)
+        weekly = np.asarray(pred["load_weekly_kw"], dtype=float)
+        row["load_kw"] = clip_nonneg((1.0 - lam) * weekly + lam * xgb)
+        row["load_mix"] = lam
+        out.append(row)
+    return out
+
+
+def bias_net_bank(point: list[dict], year: dict, alpha: float) -> list[dict]:
+    """Conservative net-load quantile: one residual on (L-P), not split load/PV."""
+    net_resid: list[np.ndarray] = []
+    out = []
+    for pred in point:
+        day = int(pred["day"])
+        load_hat = np.asarray(pred["load_kw"], dtype=float)
+        pv_hat = np.asarray(pred["pv_kw"], dtype=float)
+        net_hat = load_hat - pv_hat
+        net_plan = net_hat.copy()
+        if net_resid:
+            net_plan = net_hat + slot_quantile(net_resid, alpha)
+        pv_plan = clip_nonneg(apply_pv_night_zero(pv_hat.copy(), year["pv_kw"][:day]))
+        load_plan = clip_nonneg(pv_plan + net_plan)
+        net_resid.append((year["load_kw"][day] - year["pv_kw"][day]) - net_hat)
+        row = dict(pred)
+        row["load_kw"] = load_plan
+        row["pv_kw"] = pv_plan
+        row["risk"] = "net"
+        row["alpha"] = float(alpha)
         out.append(row)
     return out
 

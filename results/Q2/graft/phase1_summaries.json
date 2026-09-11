@@ -1,0 +1,953 @@
+{
+  "G0": {
+    "label": "G0",
+    "rule": {
+      "label": "G0",
+      "feature": "resid_vol7",
+      "q_min": 0.65,
+      "k": 0.2,
+      "ladder": [
+        0.6,
+        0.7,
+        0.8,
+        0.85,
+        0.9
+      ],
+      "q_warmup": 0.8,
+      "warmup_days": 7,
+      "min_history": 21
+    },
+    "n_validation_errors": 0,
+    "validation_errors_head": [],
+    "elapsed_s": 34.195093499991344,
+    "windows": {
+      "tune": {
+        "window": "tune",
+        "start": "2025-02-01",
+        "end": "2025-06-30",
+        "n_days": 150,
+        "total_cost": 5739936.3452173155,
+        "plan_cost": 5520699.101445236,
+        "emergency_cost": 219237.24377207935,
+        "emergency_kwh": 36149.10343442663,
+        "emergency_days": 46,
+        "purchase_kwh": 9141047.67284422,
+        "curtail_kwh": 1272087.731030437,
+        "mean_soc24_actual": 1960.3423755619267,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.8033333333333333,
+        "q_counts": {
+          "0.7": 17,
+          "0.8": 89,
+          "0.85": 44
+        },
+        "inventory_adjusted": 5741575.645071466
+      },
+      "inner": {
+        "window": "inner",
+        "start": "2025-02-01",
+        "end": "2025-04-30",
+        "n_days": 89,
+        "total_cost": 3374577.086786068,
+        "plan_cost": 3320372.867558266,
+        "emergency_cost": 54204.21922780185,
+        "emergency_kwh": 8585.811998399982,
+        "emergency_days": 17,
+        "purchase_kwh": 5521341.114267199,
+        "curtail_kwh": 760492.8883234716,
+        "mean_soc24_actual": 1939.2793050182286,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.79438202247191,
+        "q_counts": {
+          "0.7": 15,
+          "0.8": 54,
+          "0.85": 20
+        },
+        "inventory_adjusted": 3376384.4715418597
+      },
+      "select": {
+        "window": "select",
+        "start": "2025-05-01",
+        "end": "2025-06-30",
+        "n_days": 61,
+        "total_cost": 2365359.258431248,
+        "plan_cost": 2200326.23388697,
+        "emergency_cost": 165033.0245442775,
+        "emergency_kwh": 27563.29143602665,
+        "emergency_days": 29,
+        "purchase_kwh": 3619706.5585770207,
+        "curtail_kwh": 511594.8427069656,
+        "mean_soc24_actual": 1991.0737407814217,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.8163934426229507,
+        "q_counts": {
+          "0.7": 2,
+          "0.8": 35,
+          "0.85": 24
+        },
+        "inventory_adjusted": 2365191.1735296077
+      },
+      "oos": {
+        "window": "oos",
+        "start": "2025-07-01",
+        "end": "2025-12-31",
+        "n_days": 184,
+        "total_cost": 7957562.824562119,
+        "plan_cost": 7704618.900893975,
+        "emergency_cost": 252943.92366814445,
+        "emergency_kwh": 43740.63265211324,
+        "emergency_days": 92,
+        "purchase_kwh": 12441547.17411241,
+        "curtail_kwh": 1254634.2898712219,
+        "mean_soc24_actual": 1859.4373435422517,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7434782608695653,
+        "q_counts": {
+          "0.7": 112,
+          "0.8": 56,
+          "0.85": 16
+        },
+        "inventory_adjusted": 7957843.946343763
+      },
+      "full": {
+        "window": "full",
+        "start": "2025-02-01",
+        "end": "2025-12-31",
+        "n_days": 334,
+        "total_cost": 13697499.169779435,
+        "plan_cost": 13225318.002339212,
+        "emergency_cost": 472181.16744022374,
+        "emergency_kwh": 79889.73608653988,
+        "emergency_days": 138,
+        "purchase_kwh": 21582594.84695663,
+        "curtail_kwh": 2526722.0209016586,
+        "mean_soc24_actual": 1904.7539746888124,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7703592814371257,
+        "q_counts": {
+          "0.7": 129,
+          "0.8": 145,
+          "0.85": 60
+        },
+        "inventory_adjusted": 13699419.591415228
+      }
+    },
+    "point_mae": {
+      "n_days": 334,
+      "load_mae_kw": 136.4244644049466,
+      "load_rmse_kw": 182.31467448430828,
+      "weekly_mae_kw": 318.5366762386162,
+      "pv_mae_kw": 153.39970672494297
+    },
+    "spec": {
+      "id": "G0",
+      "lambda": 1.0,
+      "risk": "split",
+      "adaptive": true,
+      "note": "official D_pv7d_adaptive replay"
+    }
+  },
+  "G1": {
+    "label": "G1",
+    "rule": {
+      "label": "G1",
+      "feature": null,
+      "q_min": 0.8,
+      "k": 0.0
+    },
+    "n_validation_errors": 0,
+    "validation_errors_head": [],
+    "elapsed_s": 39.41745340000489,
+    "windows": {
+      "tune": {
+        "window": "tune",
+        "start": "2025-02-01",
+        "end": "2025-06-30",
+        "n_days": 150,
+        "total_cost": 5752019.107827847,
+        "plan_cost": 5498680.987604624,
+        "emergency_cost": 253338.12022322242,
+        "emergency_kwh": 41734.09940964128,
+        "emergency_days": 50,
+        "purchase_kwh": 9108464.18411827,
+        "curtail_kwh": 1244315.2503591022,
+        "mean_soc24_actual": 1940.8596508501246,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 150
+        },
+        "inventory_adjusted": 5753658.407681998
+      },
+      "inner": {
+        "window": "inner",
+        "start": "2025-02-01",
+        "end": "2025-04-30",
+        "n_days": 89,
+        "total_cost": 3377440.851891596,
+        "plan_cost": 3320311.787083762,
+        "emergency_cost": 57129.06480783354,
+        "emergency_kwh": 9042.487931658317,
+        "emergency_days": 19,
+        "purchase_kwh": 5521360.89290806,
+        "curtail_kwh": 760990.7011518356,
+        "mean_soc24_actual": 1942.0950531144415,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 89
+        },
+        "inventory_adjusted": 3379309.556804249
+      },
+      "select": {
+        "window": "select",
+        "start": "2025-05-01",
+        "end": "2025-06-30",
+        "n_days": 61,
+        "total_cost": 2374578.255936251,
+        "plan_cost": 2178369.200520862,
+        "emergency_cost": 196209.05541538887,
+        "emergency_kwh": 32691.611477982966,
+        "emergency_days": 31,
+        "purchase_kwh": 3587103.29121021,
+        "curtail_kwh": 483324.5492072663,
+        "mean_soc24_actual": 1939.05717869399,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999997,
+        "q_counts": {
+          "0.8": 61
+        },
+        "inventory_adjusted": 2374348.8508777493
+      },
+      "oos": {
+        "window": "oos",
+        "start": "2025-07-01",
+        "end": "2025-12-31",
+        "n_days": 184,
+        "total_cost": 8013148.473908133,
+        "plan_cost": 7871092.474946132,
+        "emergency_cost": 142055.99896199984,
+        "emergency_kwh": 25176.328228604394,
+        "emergency_days": 70,
+        "purchase_kwh": 12667086.1399328,
+        "curtail_kwh": 1473730.409929648,
+        "mean_soc24_actual": 2037.271549880436,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999999,
+        "q_counts": {
+          "0.8": 184
+        },
+        "inventory_adjusted": 8013376.790633069
+      },
+      "full": {
+        "window": "full",
+        "start": "2025-02-01",
+        "end": "2025-12-31",
+        "n_days": 334,
+        "total_cost": 13765167.58173598,
+        "plan_cost": 13369773.462550757,
+        "emergency_cost": 395394.11918522225,
+        "emergency_kwh": 66910.42763824567,
+        "emergency_days": 120,
+        "purchase_kwh": 21775550.32405107,
+        "curtail_kwh": 2718045.66028875,
+        "mean_soc24_actual": 1993.9727928308946,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 334
+        },
+        "inventory_adjusted": 13767035.198315067
+      }
+    },
+    "point_mae": {
+      "n_days": 334,
+      "load_mae_kw": 136.4244644049466,
+      "load_rmse_kw": 182.31467448430828,
+      "weekly_mae_kw": 318.5366762386162,
+      "pv_mae_kw": 153.39970672494297
+    },
+    "spec": {
+      "id": "G1",
+      "lambda": 1.0,
+      "risk": "split",
+      "adaptive": false,
+      "note": "fixed q=0.8, pure XGB"
+    }
+  },
+  "G2": {
+    "label": "G2",
+    "rule": {
+      "label": "G2",
+      "feature": null,
+      "q_min": 0.8,
+      "k": 0.0
+    },
+    "n_validation_errors": 0,
+    "validation_errors_head": [],
+    "elapsed_s": 39.279581099995994,
+    "windows": {
+      "tune": {
+        "window": "tune",
+        "start": "2025-02-01",
+        "end": "2025-06-30",
+        "n_days": 150,
+        "total_cost": 5957969.700256064,
+        "plan_cost": 5441288.67484951,
+        "emergency_cost": 516681.02540655364,
+        "emergency_kwh": 89367.89004269324,
+        "emergency_days": 66,
+        "purchase_kwh": 9072234.714192342,
+        "curtail_kwh": 1258222.1279196832,
+        "mean_soc24_actual": 1725.1014075907908,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 150
+        },
+        "inventory_adjusted": 5959949.96692273
+      },
+      "inner": {
+        "window": "inner",
+        "start": "2025-02-01",
+        "end": "2025-04-30",
+        "n_days": 89,
+        "total_cost": 3413363.814353047,
+        "plan_cost": 3379286.585245736,
+        "emergency_cost": 34077.229107311156,
+        "emergency_kwh": 5215.687124433332,
+        "emergency_days": 9,
+        "purchase_kwh": 5608551.320420691,
+        "curtail_kwh": 849889.0761249595,
+        "mean_soc24_actual": 2030.7091705618818,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 89
+        },
+        "inventory_adjusted": 3415175.7859111773
+      },
+      "select": {
+        "window": "select",
+        "start": "2025-05-01",
+        "end": "2025-06-30",
+        "n_days": 61,
+        "total_cost": 2544605.885903017,
+        "plan_cost": 2062002.0896037745,
+        "emergency_cost": 482603.7962992424,
+        "emergency_kwh": 84152.2029182599,
+        "emergency_days": 57,
+        "purchase_kwh": 3463683.3937716507,
+        "curtail_kwh": 408333.0517947236,
+        "mean_soc24_actual": 1279.2146714526411,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999997,
+        "q_counts": {
+          "0.8": 61
+        },
+        "inventory_adjusted": 2544774.1810115534
+      },
+      "oos": {
+        "window": "oos",
+        "start": "2025-07-01",
+        "end": "2025-12-31",
+        "n_days": 184,
+        "total_cost": 8475468.974947972,
+        "plan_cost": 7950193.510012919,
+        "emergency_cost": 525275.4649350531,
+        "emergency_kwh": 99924.35857127057,
+        "emergency_days": 87,
+        "purchase_kwh": 12595617.136338145,
+        "curtail_kwh": 1485796.0268729622,
+        "mean_soc24_actual": 3192.0484744086793,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999999,
+        "q_counts": {
+          "0.8": 184
+        },
+        "inventory_adjusted": 8474536.865640614
+      },
+      "full": {
+        "window": "full",
+        "start": "2025-02-01",
+        "end": "2025-12-31",
+        "n_days": 334,
+        "total_cost": 14433438.675204035,
+        "plan_cost": 13391482.184862427,
+        "emergency_cost": 1041956.4903416067,
+        "emergency_kwh": 189292.24861396378,
+        "emergency_days": 153,
+        "purchase_kwh": 21667851.850530483,
+        "curtail_kwh": 2744018.1547926455,
+        "mean_soc24_actual": 2533.2399114665136,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 334
+        },
+        "inventory_adjusted": 14434486.832563344
+      }
+    },
+    "point_mae": {
+      "n_days": 334,
+      "load_mae_kw": 186.54974885863538,
+      "load_rmse_kw": 247.47212151693705,
+      "weekly_mae_kw": 318.5366762386162,
+      "pv_mae_kw": 153.39970672494297
+    },
+    "spec": {
+      "id": "G2",
+      "lambda": 0.5,
+      "risk": "split",
+      "adaptive": false,
+      "note": "fixed q=0.8, 50% weekly + 50% XGB"
+    }
+  },
+  "G3a": {
+    "label": "G3a",
+    "rule": {
+      "label": "G3a",
+      "feature": null,
+      "q_min": 0.8,
+      "k": 0.0
+    },
+    "n_validation_errors": 0,
+    "validation_errors_head": [],
+    "elapsed_s": 38.31434270000318,
+    "windows": {
+      "tune": {
+        "window": "tune",
+        "start": "2025-02-01",
+        "end": "2025-06-30",
+        "n_days": 150,
+        "total_cost": 6135526.135616301,
+        "plan_cost": 5432702.339699544,
+        "emergency_cost": 702823.7959167559,
+        "emergency_kwh": 123994.4376831699,
+        "emergency_days": 68,
+        "purchase_kwh": 9072223.92299436,
+        "curtail_kwh": 1295966.7791189954,
+        "mean_soc24_actual": 1740.678484377235,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 150
+        },
+        "inventory_adjusted": 6137506.402282967
+      },
+      "inner": {
+        "window": "inner",
+        "start": "2025-02-01",
+        "end": "2025-04-30",
+        "n_days": 89,
+        "total_cost": 3447851.9963581534,
+        "plan_cost": 3414592.8351680655,
+        "emergency_cost": 33259.16119008798,
+        "emergency_kwh": 5013.323453033327,
+        "emergency_days": 7,
+        "purchase_kwh": 5660900.907726199,
+        "curtail_kwh": 904552.2542897144,
+        "mean_soc24_actual": 2084.331650270413,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 89
+        },
+        "inventory_adjusted": 3449642.455711578
+      },
+      "select": {
+        "window": "select",
+        "start": "2025-05-01",
+        "end": "2025-06-30",
+        "n_days": 61,
+        "total_cost": 2687674.1392581477,
+        "plan_cost": 2018109.5045314792,
+        "emergency_cost": 669564.634726668,
+        "emergency_kwh": 118981.11423013656,
+        "emergency_days": 61,
+        "purchase_kwh": 3411323.01526816,
+        "curtail_kwh": 391414.5248292812,
+        "mean_soc24_actual": 1239.2828816806316,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999997,
+        "q_counts": {
+          "0.8": 61
+        },
+        "inventory_adjusted": 2687863.9465713897
+      },
+      "oos": {
+        "window": "oos",
+        "start": "2025-07-01",
+        "end": "2025-12-31",
+        "n_days": 184,
+        "total_cost": 8882039.435814563,
+        "plan_cost": 8086201.565858607,
+        "emergency_cost": 795837.869955956,
+        "emergency_kwh": 153102.43078807322,
+        "emergency_days": 92,
+        "purchase_kwh": 12677779.20822867,
+        "curtail_kwh": 1633318.158330577,
+        "mean_soc24_actual": 3937.5783593470214,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999999,
+        "q_counts": {
+          "0.8": 184
+        },
+        "inventory_adjusted": 8880668.785804896
+      },
+      "full": {
+        "window": "full",
+        "start": "2025-02-01",
+        "end": "2025-12-31",
+        "n_days": 334,
+        "total_cost": 15017565.571430862,
+        "plan_cost": 13518903.90555815,
+        "emergency_cost": 1498661.6658727122,
+        "emergency_kwh": 277096.86847124307,
+        "emergency_days": 160,
+        "purchase_kwh": 21750003.13122303,
+        "curtail_kwh": 2929284.9374495726,
+        "mean_soc24_actual": 2950.9466789713697,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 334
+        },
+        "inventory_adjusted": 15018175.188087862
+      }
+    },
+    "point_mae": {
+      "n_days": 334,
+      "load_mae_kw": 234.9974573767427,
+      "load_rmse_kw": 309.50170619595326,
+      "weekly_mae_kw": 318.5366762386162,
+      "pv_mae_kw": 153.39970672494297
+    },
+    "spec": {
+      "id": "G3a",
+      "lambda": 0.3,
+      "risk": "split",
+      "adaptive": false,
+      "note": "fixed q=0.8, 30% XGB"
+    }
+  },
+  "G3b": {
+    "label": "G3b",
+    "rule": {
+      "label": "G3b",
+      "feature": null,
+      "q_min": 0.8,
+      "k": 0.0
+    },
+    "n_validation_errors": 0,
+    "validation_errors_head": [],
+    "elapsed_s": 22.497648200005642,
+    "windows": {
+      "tune": {
+        "window": "tune",
+        "start": "2025-02-01",
+        "end": "2025-06-30",
+        "n_days": 150,
+        "total_cost": 5826158.694504411,
+        "plan_cost": 5456690.29898423,
+        "emergency_cost": 369468.39552018256,
+        "emergency_kwh": 61754.88946228158,
+        "emergency_days": 57,
+        "purchase_kwh": 9078711.62071424,
+        "curtail_kwh": 1234871.9712710236,
+        "mean_soc24_actual": 1751.63015808247,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 150
+        },
+        "inventory_adjusted": 5828052.313379224
+      },
+      "inner": {
+        "window": "inner",
+        "start": "2025-02-01",
+        "end": "2025-04-30",
+        "n_days": 89,
+        "total_cost": 3386564.263655332,
+        "plan_cost": 3347718.4266221747,
+        "emergency_cost": 38845.83703315722,
+        "emergency_kwh": 5989.81904493997,
+        "emergency_days": 12,
+        "purchase_kwh": 5562149.5336816395,
+        "curtail_kwh": 801791.8894553394,
+        "mean_soc24_actual": 1976.3916376329594,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 89
+        },
+        "inventory_adjusted": 3388398.757379609
+      },
+      "select": {
+        "window": "select",
+        "start": "2025-05-01",
+        "end": "2025-06-30",
+        "n_days": 61,
+        "total_cost": 2439594.4308490795,
+        "plan_cost": 2108971.872362055,
+        "emergency_cost": 330622.5584870253,
+        "emergency_kwh": 55765.0704173416,
+        "emergency_days": 45,
+        "purchase_kwh": 3516562.0870326003,
+        "curtail_kwh": 433080.0818156841,
+        "mean_soc24_actual": 1423.6994748038865,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999997,
+        "q_counts": {
+          "0.8": 61
+        },
+        "inventory_adjusted": 2439653.555999615
+      },
+      "oos": {
+        "window": "oos",
+        "start": "2025-07-01",
+        "end": "2025-12-31",
+        "n_days": 184,
+        "total_cost": 8177263.293780164,
+        "plan_cost": 7862754.493740226,
+        "emergency_cost": 314508.8000399365,
+        "emergency_kwh": 58126.11489552657,
+        "emergency_days": 82,
+        "purchase_kwh": 12575628.23276816,
+        "curtail_kwh": 1415647.312638539,
+        "mean_soc24_actual": 2527.805565006543,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999999,
+        "q_counts": {
+          "0.8": 184
+        },
+        "inventory_adjusted": 8176787.438202023
+      },
+      "full": {
+        "window": "full",
+        "start": "2025-02-01",
+        "end": "2025-12-31",
+        "n_days": 334,
+        "total_cost": 14003421.988284575,
+        "plan_cost": 13319444.792724457,
+        "emergency_cost": 683977.1955601191,
+        "emergency_kwh": 119881.00435780815,
+        "emergency_days": 139,
+        "purchase_kwh": 21654339.8534824,
+        "curtail_kwh": 2650519.2839095625,
+        "mean_soc24_actual": 2179.223795429864,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 334
+        },
+        "inventory_adjusted": 14004839.751581246
+      }
+    },
+    "point_mae": {
+      "n_days": 334,
+      "load_mae_kw": 150.14410490799264,
+      "load_rmse_kw": 200.08730031559406,
+      "weekly_mae_kw": 318.5366762386162,
+      "pv_mae_kw": 153.39970672494297
+    },
+    "spec": {
+      "id": "G3b",
+      "lambda": 0.7,
+      "risk": "split",
+      "adaptive": false,
+      "note": "fixed q=0.8, 70% XGB"
+    }
+  },
+  "G4": {
+    "label": "G4",
+    "rule": {
+      "label": "G4",
+      "feature": null,
+      "q_min": 0.8,
+      "k": 0.0
+    },
+    "n_validation_errors": 0,
+    "validation_errors_head": [],
+    "elapsed_s": 37.46655769999779,
+    "windows": {
+      "tune": {
+        "window": "tune",
+        "start": "2025-02-01",
+        "end": "2025-06-30",
+        "n_days": 150,
+        "total_cost": 5740455.485287093,
+        "plan_cost": 5421981.642614669,
+        "emergency_cost": 318473.84267242387,
+        "emergency_kwh": 51935.60546468324,
+        "emergency_days": 56,
+        "purchase_kwh": 8990759.006276,
+        "curtail_kwh": 1132604.6446460793,
+        "mean_soc24_actual": 1930.6269263255324,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 150
+        },
+        "inventory_adjusted": 5742094.815440699
+      },
+      "inner": {
+        "window": "inner",
+        "start": "2025-02-01",
+        "end": "2025-04-30",
+        "n_days": 89,
+        "total_cost": 3357716.018213298,
+        "plan_cost": 3268188.8469091114,
+        "emergency_cost": 89527.17130418649,
+        "emergency_kwh": 14150.25123466996,
+        "emergency_days": 23,
+        "purchase_kwh": 5442469.81258272,
+        "curtail_kwh": 683886.064718465,
+        "mean_soc24_actual": 1931.9266459142746,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 89
+        },
+        "inventory_adjusted": 3359584.729372501
+      },
+      "select": {
+        "window": "select",
+        "start": "2025-05-01",
+        "end": "2025-06-30",
+        "n_days": 61,
+        "total_cost": 2382739.467073795,
+        "plan_cost": 2153792.7957055573,
+        "emergency_cost": 228946.67136823735,
+        "emergency_kwh": 37785.35423001329,
+        "emergency_days": 33,
+        "purchase_kwh": 3548289.1936932798,
+        "curtail_kwh": 448718.57992761454,
+        "mean_soc24_actual": 1928.730614138677,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999997,
+        "q_counts": {
+          "0.8": 61
+        },
+        "inventory_adjusted": 2382510.0860681986
+      },
+      "oos": {
+        "window": "oos",
+        "start": "2025-07-01",
+        "end": "2025-12-31",
+        "n_days": 184,
+        "total_cost": 7974097.2886415385,
+        "plan_cost": 7770143.3335433565,
+        "emergency_cost": 203953.95509818193,
+        "emergency_kwh": 35393.41068373325,
+        "emergency_days": 78,
+        "purchase_kwh": 12517708.73864215,
+        "curtail_kwh": 1328721.0993875149,
+        "mean_soc24_actual": 2027.0776417832742,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999999,
+        "q_counts": {
+          "0.8": 184
+        },
+        "inventory_adjusted": 7974325.2048787195
+      },
+      "full": {
+        "window": "full",
+        "start": "2025-02-01",
+        "end": "2025-12-31",
+        "n_days": 334,
+        "total_cost": 13714552.773928631,
+        "plan_cost": 13192124.976158023,
+        "emergency_cost": 522427.79777060583,
+        "emergency_kwh": 87329.01614841651,
+        "emergency_days": 134,
+        "purchase_kwh": 21508467.744918153,
+        "curtail_kwh": 2461325.7440335946,
+        "mean_soc24_actual": 1983.761452206444,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 334
+        },
+        "inventory_adjusted": 13716420.020319419
+      }
+    },
+    "point_mae": {
+      "n_days": 334,
+      "load_mae_kw": 136.4244644049466,
+      "load_rmse_kw": 182.31467448430828,
+      "weekly_mae_kw": 318.5366762386162,
+      "pv_mae_kw": 153.39970672494297
+    },
+    "spec": {
+      "id": "G4",
+      "lambda": 1.0,
+      "risk": "net",
+      "adaptive": false,
+      "note": "pure XGB, net-load alpha=0.8"
+    }
+  },
+  "G5": {
+    "label": "G5",
+    "rule": {
+      "label": "G5",
+      "feature": null,
+      "q_min": 0.8,
+      "k": 0.0
+    },
+    "n_validation_errors": 0,
+    "validation_errors_head": [],
+    "elapsed_s": 37.96398380000028,
+    "windows": {
+      "tune": {
+        "window": "tune",
+        "start": "2025-02-01",
+        "end": "2025-06-30",
+        "n_days": 150,
+        "total_cost": 5951111.8289376665,
+        "plan_cost": 5384280.314757252,
+        "emergency_cost": 566831.5141804137,
+        "emergency_kwh": 97129.29063841958,
+        "emergency_days": 67,
+        "purchase_kwh": 8987045.646747231,
+        "curtail_kwh": 1177822.04029128,
+        "mean_soc24_actual": 1722.0564916720498,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 150
+        },
+        "inventory_adjusted": 5953092.095604333
+      },
+      "inner": {
+        "window": "inner",
+        "start": "2025-02-01",
+        "end": "2025-04-30",
+        "n_days": 89,
+        "total_cost": 3383255.1737691783,
+        "plan_cost": 3337692.5335144484,
+        "emergency_cost": 45562.64025473025,
+        "emergency_kwh": 6932.635100199998,
+        "emergency_days": 10,
+        "purchase_kwh": 5546911.2161615295,
+        "curtail_kwh": 787141.9784543673,
+        "mean_soc24_actual": 2026.0720049391603,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 89
+        },
+        "inventory_adjusted": 3385067.1439612918
+      },
+      "select": {
+        "window": "select",
+        "start": "2025-05-01",
+        "end": "2025-06-30",
+        "n_days": 61,
+        "total_cost": 2567856.6551684886,
+        "plan_cost": 2046587.7812428046,
+        "emergency_cost": 521268.8739256834,
+        "emergency_kwh": 90196.65553821958,
+        "emergency_days": 57,
+        "purchase_kwh": 3440134.4305856996,
+        "curtail_kwh": 390680.0618369124,
+        "mean_soc24_actual": 1278.4928739544628,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999997,
+        "q_counts": {
+          "0.8": 61
+        },
+        "inventory_adjusted": 2568024.9516430423
+      },
+      "oos": {
+        "window": "oos",
+        "start": "2025-07-01",
+        "end": "2025-12-31",
+        "n_days": 184,
+        "total_cost": 8460535.465794783,
+        "plan_cost": 7850661.42141264,
+        "emergency_cost": 609874.0443821434,
+        "emergency_kwh": 113540.70814825316,
+        "emergency_days": 97,
+        "purchase_kwh": 12446022.345807072,
+        "curtail_kwh": 1346502.8017100834,
+        "mean_soc24_actual": 3186.2054919277125,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999999,
+        "q_counts": {
+          "0.8": 184
+        },
+        "inventory_adjusted": 8459603.352387631
+      },
+      "full": {
+        "window": "full",
+        "start": "2025-02-01",
+        "end": "2025-12-31",
+        "n_days": 334,
+        "total_cost": 14411647.294732451,
+        "plan_cost": 13234941.736169891,
+        "emergency_cost": 1176705.5585625572,
+        "emergency_kwh": 210669.99878667278,
+        "emergency_days": 164,
+        "purchase_kwh": 21433067.9925543,
+        "curtail_kwh": 2524324.842001363,
+        "mean_soc24_actual": 2528.6535457051095,
+        "max_unserved_kwh": 0.0,
+        "n_simultaneous_plan": 0,
+        "mean_q_load": 0.7999999999999998,
+        "q_counts": {
+          "0.8": 334
+        },
+        "inventory_adjusted": 14412695.447991967
+      }
+    },
+    "point_mae": {
+      "n_days": 334,
+      "load_mae_kw": 186.54974885863538,
+      "load_rmse_kw": 247.47212151693705,
+      "weekly_mae_kw": 318.5366762386162,
+      "pv_mae_kw": 153.39970672494297
+    },
+    "spec": {
+      "id": "G5",
+      "lambda": 0.5,
+      "risk": "net",
+      "adaptive": false,
+      "note": "50% mix, net-load alpha=0.8"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "beats_official_full_year": false,
+  "beats_official_oos": false,
+  "clean_validation": true,
+  "n_eligible_after_inner": 1,
+  "fell_back_to_full_pool": false,
+  "selected": {
+    "id": "P_best_net_fixed",
+    "lambda": 1.0,
+    "risk": "net",
+    "adaptive": false,
+    "note": "best net OOS G4"
+  },
+  "selected_full": 13714552.773928631,
+  "selected_oos": 7974097.2886415385,
+  "official_full": 13697499.169779435,
+  "official_oos": 7957562.824562119,
+  "passed": false
+}
