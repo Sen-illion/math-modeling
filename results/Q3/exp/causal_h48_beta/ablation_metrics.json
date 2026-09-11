@@ -1,0 +1,20 @@
+{
+  "LA": {
+    "n_days": 334,
+    "total_cost": 13421219.842027923,
+    "plan_only_cost": 12415338.587975113,
+    "emergency_cost": 421410.2725891817,
+    "emergency_kwh": 70433.46291094298,
+    "adj_purchase_kwh": 20617500.720954318,
+    "n_days_with_intraday_adjust": 334,
+    "delta_plus_kwh": 681103.350437888,
+    "delta_minus_kwh": 582416.83862405,
+    "soc24_median": 8458.793726074073,
+    "soc24_at_min_days": 0,
+    "emergency_share_20h": 0.5537251589572268,
+    "elapsed_s": 258.93732779999846,
+    "leakage_errors": [],
+    "gate_errors": []
+  },
+  "official_winner": "LA"
+}

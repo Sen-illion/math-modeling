@@ -1,0 +1,66 @@
+{
+  "phase": "official",
+  "created_at": "2026-09-11T20:06:20.471970+00:00",
+  "elapsed_s": 432.44572130001325,
+  "start_day": 31,
+  "end_day": 365,
+  "inputs": {
+    "attachment1": "66b87134f5ecccd68184d3539bb1293ef039f9e0fdd955a589b9bfa7f227c377",
+    "attachment2": "2e95fd446bfafa0d8c59577b5c2e2ea8b3f1def20dde54a3062556f4da9b4c72",
+    "attachment3": "8a61b06c52bd0d639a1cc37c61a7d9f5b75edcbca718f64c1bd3498ec9f9d843",
+    "template": "c59da470cabd0be23f602c95c8aa9d11ec224a0cdac216b3e1f218e65d006bdc"
+  },
+  "audit": {
+    "n_price_slots": 144,
+    "n_days": 365,
+    "date_start": "2025-01-01",
+    "date_end": "2025-12-31",
+    "forecast_days": 365,
+    "forecast_issues": [
+      0,
+      6,
+      12,
+      18
+    ],
+    "missing_load": 0,
+    "missing_pv": 0,
+    "load_kw_min": 1995.7176,
+    "load_kw_max": 7978.8849,
+    "pv_kw_min": 0.0,
+    "pv_kw_max": 10216.2,
+    "fc_kw_min": 0.0,
+    "fc_kw_max": 9995.8875,
+    "dt_hours": 0.16666666666666666,
+    "alignment": "start_clock_stitched_to_calendar",
+    "pv_p0_mode": "measured"
+  },
+  "metrics": {
+    "LA": {
+      "n_days": 334,
+      "total_cost": 13402722.599526653,
+      "plan_only_cost": 12363050.72034659,
+      "emergency_cost": 105770.6180648348,
+      "emergency_kwh": 17308.571249256634,
+      "adj_purchase_kwh": 20894211.98878645,
+      "n_days_with_intraday_adjust": 334,
+      "delta_plus_kwh": 914810.9762967138,
+      "delta_minus_kwh": 436920.18357179,
+      "soc24_median": 8621.528089648145,
+      "soc24_at_min_days": 0,
+      "emergency_share_20h": 0.5483520551056997,
+      "elapsed_s": 345.66075199999614,
+      "leakage_errors": [],
+      "gate_errors": []
+    },
+    "official_winner": "LA"
+  },
+  "ran_policies": [
+    "LA"
+  ],
+  "pv_p0_mode": "measured",
+  "reserve_gamma": 0.0,
+  "lookahead_hours": 48,
+  "q_lock": 0.75,
+  "q_open": 0.5,
+  "q_evening": 0.5
+}
