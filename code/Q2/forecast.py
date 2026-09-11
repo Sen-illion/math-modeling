@@ -113,6 +113,31 @@ def clip_nonneg(pred: np.ndarray) -> np.ndarray:
     return np.maximum(pred, 0.0)
 
 
+def slot_quantile(residuals: list[np.ndarray], q: float) -> np.ndarray:
+    if not residuals:
+        return np.zeros(N_INTERVALS)
+    stacked = np.vstack(residuals)
+    return np.quantile(stacked, q, axis=0)
+
+
+def apply_conservative_bias(
+    load_hat: np.ndarray,
+    pv_hat: np.ndarray,
+    load_residuals: list[np.ndarray],
+    pv_residuals: list[np.ndarray],
+    q_load: float | None,
+    q_pv: float | None,
+    history_pv: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    load_out = load_hat.copy()
+    pv_out = pv_hat.copy()
+    if q_load is not None and load_residuals:
+        load_out = load_out + slot_quantile(load_residuals, q_load)
+    if q_pv is not None and pv_residuals:
+        pv_out = pv_out + slot_quantile(pv_residuals, q_pv)
+    return clip_nonneg(load_out), clip_nonneg(apply_pv_night_zero(pv_out, history_pv))
+
+
 def predict_day(
     load_kw: np.ndarray,
     pv_kw: np.ndarray,
@@ -124,6 +149,7 @@ def predict_day(
     cache: dict,
     load_panel: pd.DataFrame | None = None,
     pv_panel: pd.DataFrame | None = None,
+    pv_source: str = "model",
 ) -> dict:
     load_base = baseline_7d(load_kw, day, fallback_load)
     pv_base = baseline_7d(pv_kw, day, fallback_pv)
@@ -134,6 +160,7 @@ def predict_day(
             "load_kw": clip_nonneg(load_base),
             "pv_kw": clip_nonneg(apply_pv_night_zero(pv_base, history_pv)),
             "xgb_used": False,
+            "pv_source": "baseline_7d",
         }
 
     window = {
@@ -141,25 +168,17 @@ def predict_day(
         "xgb_rolling30": "rolling30",
         "xgb_rolling60": "rolling60",
     }[model_name]
-    key = (model_name, day)
-    if key not in cache:
+    load_key = (model_name, "load", day)
+    if load_key not in cache:
         if load_panel is None:
             load_panel = precompute_panel(load_kw[: day + 1], dates.iloc[: day + 1])
-        if pv_panel is None:
-            pv_panel = precompute_panel(pv_kw[: day + 1], dates.iloc[: day + 1])
-        cache[key] = {
-            "load": _fit_from_panel(load_panel, day, window),
-            "pv": _fit_from_panel(pv_panel, day, window),
-        }
+        cache[load_key] = _fit_from_panel(load_panel, day, window)
 
-    load_model = cache[key]["load"]
-    pv_model = cache[key]["pv"]
+    load_model = cache[load_key]
     if load_panel is None:
         x_load = feature_matrix(load_kw, day, dates)
-        x_pv = feature_matrix(pv_kw, day, dates)
     else:
         x_load = load_panel[load_panel["day"] == day][FEATURE_COLS]
-        x_pv = pv_panel[pv_panel["day"] == day][FEATURE_COLS]
 
     xgb_used = True
     if load_model is None:
@@ -167,14 +186,29 @@ def predict_day(
         xgb_used = False
     else:
         load_hat = np.asarray(load_model.predict(x_load), dtype=float)
-    if pv_model is None:
+
+    if pv_source == "baseline_7d":
         pv_hat = pv_base
-        xgb_used = False
     else:
-        pv_hat = np.asarray(pv_model.predict(x_pv), dtype=float)
+        pv_key = (model_name, "pv", day)
+        if pv_key not in cache:
+            if pv_panel is None:
+                pv_panel = precompute_panel(pv_kw[: day + 1], dates.iloc[: day + 1])
+            cache[pv_key] = _fit_from_panel(pv_panel, day, window)
+        pv_model = cache[pv_key]
+        if pv_panel is None:
+            x_pv = feature_matrix(pv_kw, day, dates)
+        else:
+            x_pv = pv_panel[pv_panel["day"] == day][FEATURE_COLS]
+        if pv_model is None:
+            pv_hat = pv_base
+            xgb_used = False
+        else:
+            pv_hat = np.asarray(pv_model.predict(x_pv), dtype=float)
 
     return {
         "load_kw": clip_nonneg(load_hat),
         "pv_kw": clip_nonneg(apply_pv_night_zero(pv_hat, history_pv)),
         "xgb_used": xgb_used,
+        "pv_source": pv_source,
     }

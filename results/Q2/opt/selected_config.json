@@ -1,0 +1,11 @@
+{
+  "name": "C_pv7d_q82",
+  "pv_source": "baseline_7d",
+  "q_load": 0.8,
+  "q_pv": 0.2,
+  "soc_mu": 0.0,
+  "dispatch": "greedy",
+  "mpc_stride": 1,
+  "source_commit": "d0d3e50",
+  "note": "Official V2 policy. Phase-1 grid is not re-run; full year is re-run after start-align."
+}
