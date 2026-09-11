@@ -30,8 +30,8 @@ LOG_DIR = RESULT_DIR / "logs"
 ASSET_FIGURE_DIR = REPO_ROOT / "paper" / "assets" / "figures"
 ASSET_TABLE_DIR = REPO_ROOT / "paper" / "assets" / "tables"
 
-# Paper Table 1 intervals are clock-aligned 10-minute slots; take the slot ending at HH:10.
-PAPER_TABLE1_END_MINUTES = (10 * 60 + 10, 12 * 60 + 10, 14 * 60 + 10, 16 * 60 + 10, 18 * 60 + 10, 20 * 60 + 10)
+# Paper Table 1: 10:00-10:10 is the slot whose start is 10:00.
+PAPER_TABLE1_START_MINUTES = (10 * 60, 12 * 60, 14 * 60, 16 * 60, 18 * 60, 20 * 60)
 
 FOUR_HOUR_BLOCKS = (
     (0, 4 * 60, "0:00-4:00"),

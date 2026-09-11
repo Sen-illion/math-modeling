@@ -14,6 +14,9 @@ import numpy as np
 import pandas as pd
 
 Q3_DIR = Path(__file__).resolve().parent
+CODE_DIR = Q3_DIR.parent
+if str(CODE_DIR) not in sys.path:
+    sys.path.insert(0, str(CODE_DIR))
 if str(Q3_DIR) not in sys.path:
     sys.path.insert(0, str(Q3_DIR))
 
@@ -58,7 +61,10 @@ def _day_index(dates, stamp: str) -> int:
 
 def load_bundle() -> dict:
     prices = load_prices()
-    year = load_year_actuals()
+    year = load_year_actuals(
+        jan1_load=float(prices["typical_load_kw"].iloc[0]),
+        jan1_pv=float(prices["typical_pv_kw"].iloc[0]),
+    )
     forecasts = load_pv_hourly_forecasts()
     y_dates = [pd.Timestamp(d).date() for d in year["dates"]]
     f_dates = [pd.Timestamp(d).date() for d in forecasts["dates"]]
@@ -199,17 +205,12 @@ def run_phase(bundle: dict, phase: str, policy_names: list[str] | None = None, e
                 raise RuntimeError("Feb 1 SOC0 != Jan 31 SOC24")
         if export:
             winner_cost = metrics[winner]["total_cost"]
-            metrics["previous_official_m1_cost"] = PREVIOUS_OFFICIAL_M1_COST
-            better = winner_cost < PREVIOUS_OFFICIAL_M1_COST - 0.01
-            metrics["freeze_official"] = better
-            if better:
-                win = payloads[winner]
-                export_result3(win["official"], bundle["year"]["slot_end_min"], RESULT_DIR / "result3.xlsx")
-                export_paper_tables(win["official"], bundle["year"]["slot_end_min"], price144)
-            else:
-                (RESULT_DIR / "candidate_metrics.json").write_text(
-                    json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8"
-                )
+            metrics["previous_endpoint_m1_cost"] = PREVIOUS_OFFICIAL_M1_COST
+            metrics["freeze_official"] = True
+            metrics["winner_cost"] = winner_cost
+            win = payloads[winner]
+            export_result3(win["official"], bundle["year"]["slot_end_min"], RESULT_DIR / "result3.xlsx")
+            export_paper_tables(win["official"], bundle["year"]["slot_end_min"], price144)
 
     return {"metrics": metrics, "payloads": payloads, "start_day": start_day, "end_day": end_day}
 

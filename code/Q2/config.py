@@ -62,6 +62,15 @@ FEATURE_COLS = [
 
 MODEL_NAMES = ("baseline_7d", "xgb_expanding", "xgb_rolling30", "xgb_rolling60")
 
+FOUR_HOUR_BLOCKS = (
+    (0, 4 * 60, "0:00-4:00"),
+    (4 * 60, 8 * 60, "4:00-8:00"),
+    (8 * 60, 12 * 60, "8:00-12:00"),
+    (12 * 60, 16 * 60, "12:00-16:00"),
+    (16 * 60, 20 * 60, "16:00-20:00"),
+    (20 * 60, 24 * 60, "20:00-24:00"),
+)
+
 ATTACHMENT1_XLSX = REPO_ROOT / "data_raw" / "Q2" / "attachment1.xlsx"
 ATTACHMENT2_XLSX = REPO_ROOT / "data_raw" / "Q2" / "attachment2.xlsx"
 RESULT2_TEMPLATE_XLSX = REPO_ROOT / "data_raw" / "Q2" / "result2_template.xlsx"

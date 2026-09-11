@@ -13,6 +13,9 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent
+CODE_DIR = ROOT.parent
+if str(CODE_DIR) not in sys.path:
+    sys.path.insert(0, str(CODE_DIR))
 sys.path.insert(0, str(ROOT))
 
 from config import (  # noqa: E402
@@ -35,8 +38,10 @@ from config import (  # noqa: E402
     RESULT2_TEMPLATE_XLSX,
     RESULT_DIR,
     TERMINAL_LAMBDA,
+    TERMINAL_TARGET_KWH,
     XGB_PARAMS,
 )
+from export_results import export_result2  # noqa: E402
 from forecast import precompute_panel, predict_day  # noqa: E402
 from leakage import run_leakage_suite  # noqa: E402
 from load_data import audit_data, load_prices, load_year_actuals, write_clean  # noqa: E402
@@ -123,6 +128,7 @@ def run_model(
     price = prices["price"].to_numpy(dtype=float)
     soc_actual = E0_JAN1_KWH
     rows = []
+    official_series: list[dict] = []
     t0 = time.perf_counter()
     n_simultaneous = 0
     all_errors: list[str] = []
@@ -171,6 +177,19 @@ def run_model(
                 "max_unserved_kwh": float(actual["max_unserved_kwh"]),
             }
         )
+        if stamp >= official_start:
+            official_series.append(
+                {
+                    "date": pred["date"],
+                    "purchase_kwh": np.asarray(plan["purchase_kwh"], dtype=float),
+                    "charge_kwh": np.asarray(actual["charge_kwh"], dtype=float),
+                    "discharge_kwh": np.asarray(actual["discharge_kwh"], dtype=float),
+                    "emergency_kwh": np.asarray(actual["emergency_kwh"], dtype=float),
+                    "soc0_kwh": float(soc_actual),
+                    "soc24_kwh": float(actual["soc24_kwh"]),
+                    "plan_cost": float(actual["plan_cost"]),
+                }
+            )
         soc_actual = float(actual["soc24_kwh"])
 
     elapsed = time.perf_counter() - t0 + forecast_s
@@ -211,7 +230,7 @@ def run_model(
         "terminal_lambda": TERMINAL_LAMBDA if terminal_mode == "track6000" else 0.0,
         "terminal_target_kwh": TERMINAL_TARGET_KWH if terminal_mode == "track6000" else None,
     }
-    return {"daily": daily, "summary": summary}
+    return {"daily": daily, "summary": summary, "official_series": official_series}
 
 
 def write_verification_report(audit: dict, leakage: dict, summaries: list[dict], out_path: Path) -> None:
@@ -283,7 +302,10 @@ def main() -> None:
         args.phase1 = True
     copy_raw_inputs()
     prices = load_prices()
-    year = load_year_actuals()
+    year = load_year_actuals(
+        jan1_load=float(prices["typical_load_kw"].iloc[0]),
+        jan1_pv=float(prices["typical_pv_kw"].iloc[0]),
+    )
     audit = audit_data(prices, year)
     write_clean(prices, year, audit)
 
@@ -321,6 +343,7 @@ def main() -> None:
     out_root = FULL_DIR if args.full else PHASE1_DIR
     out_root.mkdir(parents=True, exist_ok=True)
     summaries = []
+    payloads = {}
     for name in MODEL_NAMES:
         print("forecasting", name, "through", end_date.date(), flush=True)
         forecasts, forecast_s = collect_forecasts(
@@ -345,6 +368,7 @@ def main() -> None:
             json.dumps(result["summary"], ensure_ascii=False, indent=2), encoding="utf-8"
         )
         summaries.append(result["summary"])
+        payloads[name] = result
         print(json.dumps(result["summary"], ensure_ascii=False), flush=True)
         if result["summary"]["n_validation_errors"]:
             raise RuntimeError(f"{name} failed validation: {result['summary']['validation_errors_head']}")
@@ -352,7 +376,9 @@ def main() -> None:
     comparison = pd.DataFrame(summaries)
     comparison.to_csv(out_root / "model_comparison.csv", index=False, encoding="utf-8-sig")
     if args.full:
-        print("wrote", out_root / "model_comparison.csv", flush=True)
+        winner = min(summaries, key=lambda s: s["total_cost"])["model"]
+        export_result2(payloads[winner]["official_series"], year["slot_end_min"], RESULT_DIR / "result2.xlsx")
+        print("wrote", out_root / "model_comparison.csv", "winner", winner, flush=True)
     else:
         write_verification_report(audit, leakage, summaries, PHASE1_DIR / "verification_report.md")
         print("wrote", PHASE1_DIR / "verification_report.md", flush=True)

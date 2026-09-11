@@ -26,10 +26,10 @@ def plot_all(frame: pd.DataFrame, dispatch: dict, metrics: dict) -> list[Path]:
     _setup_font()
     FIGURE_DIR.mkdir(parents=True, exist_ok=True)
     ASSET_FIGURE_DIR.mkdir(parents=True, exist_ok=True)
-    hours = frame["end_min"].to_numpy() / 60.0
+    hours = frame["start_min"].to_numpy() / 60.0
     paths = [
         _plot_price_load_pv(hours, frame),
-        _plot_purchase_soc(hours, dispatch),
+        _plot_purchase_soc(hours, frame["end_min"].to_numpy() / 60.0, dispatch),
         _plot_charge_discharge(hours, dispatch),
         _plot_baseline_cost(metrics),
     ]
@@ -62,13 +62,13 @@ def _plot_price_load_pv(hours: np.ndarray, frame: pd.DataFrame) -> Path:
     return path
 
 
-def _plot_purchase_soc(hours: np.ndarray, dispatch: dict) -> Path:
+def _plot_purchase_soc(hours: np.ndarray, end_hours: np.ndarray, dispatch: dict) -> Path:
     fig, ax1 = plt.subplots(figsize=(10, 4.5))
     ax1.step(hours, dispatch["purchase_kwh"], where="pre", label="purchase kWh", color="#1565c0")
     ax1.set_ylabel("purchase (kWh / 10 min)")
     ax2 = ax1.twinx()
     soc = np.concatenate(([E0_KWH], dispatch["soc_end_kwh"]))
-    soc_hours = np.concatenate(([0.0], hours))
+    soc_hours = np.concatenate(([0.0], end_hours))
     ax2.plot(soc_hours, soc, label="SOC", color="#6a1b9a")
     ax2.set_ylabel("SOC (kWh)")
     lines1, labels1 = ax1.get_legend_handles_labels()

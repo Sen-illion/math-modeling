@@ -12,6 +12,9 @@ from pathlib import Path
 import numpy as np
 
 Q1_DIR = Path(__file__).resolve().parent
+CODE_DIR = Q1_DIR.parent
+if str(CODE_DIR) not in sys.path:
+    sys.path.insert(0, str(CODE_DIR))
 if str(Q1_DIR) not in sys.path:
     sys.path.insert(0, str(Q1_DIR))
 

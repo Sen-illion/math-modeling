@@ -17,7 +17,7 @@ def interpolate_issue(fc24: np.ndarray, issue_h: int) -> np.ndarray:
     p0 = 0.0 if issue_h in ISSUE_P0_ZERO else float(fc24[0])
     knots_x = np.arange(0.0, 25.0)
     knots_y = np.concatenate([[p0], np.asarray(fc24, dtype=float)])
-    offsets = np.arange(1, N_INTERVALS + 1) / 6.0
+    offsets = np.arange(N_INTERVALS) / 6.0
     return np.maximum(np.interp(offsets, knots_x, knots_y), 0.0)
 
 

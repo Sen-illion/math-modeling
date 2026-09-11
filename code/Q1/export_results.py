@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -12,11 +13,17 @@ from openpyxl import load_workbook
 from config import (
     E0_KWH,
     FOUR_HOUR_BLOCKS,
-    PAPER_TABLE1_END_MINUTES,
+    PAPER_TABLE1_START_MINUTES,
     RESULT1_TEMPLATE_XLSX,
     RESULT_DIR,
     ASSET_TABLE_DIR,
 )
+
+_CODE_DIR = Path(__file__).resolve().parents[1]
+if str(_CODE_DIR) not in sys.path:
+    sys.path.insert(0, str(_CODE_DIR))
+
+from common.time_slots import template_header_slot  # noqa: E402
 
 
 def _block_sums(frame: pd.DataFrame, values: np.ndarray) -> dict[str, float]:
@@ -40,12 +47,10 @@ def export_result1(frame: pd.DataFrame, dispatch: dict, dest: Path | None = None
         raise ValueError(
             f"template purchase rows {purchase_sheet.max_row - 1} != dispatch length {len(purchase)}"
         )
-    for i, value in enumerate(purchase, start=2):
-        idx = i - 2
-        start_label = str(frame.loc[idx, "t_start"])
-        end_label = str(frame.loc[idx, "t_end"])
-        purchase_sheet.cell(i, 1).value = f"{start_label}-{end_label}"
-        purchase_sheet.cell(i, 2).value = float(value)
+    for i in range(2, purchase_sheet.max_row + 1):
+        header = purchase_sheet.cell(i, 1).value
+        _day_off, slot = template_header_slot(str(header))
+        purchase_sheet.cell(i, 2).value = float(purchase[slot])
 
     charge_blocks = _block_sums(frame, np.asarray(dispatch["charge_kwh"], dtype=float))
     discharge_blocks = _block_sums(frame, np.asarray(dispatch["discharge_kwh"], dtype=float))
@@ -66,10 +71,10 @@ def export_paper_tables(frame: pd.DataFrame, dispatch: dict, metrics: dict) -> t
     ASSET_TABLE_DIR.mkdir(parents=True, exist_ok=True)
 
     rows = []
-    for end_min in PAPER_TABLE1_END_MINUTES:
-        match = frame.index[frame["end_min"] == end_min]
+    for start_min in PAPER_TABLE1_START_MINUTES:
+        match = frame.index[frame["start_min"] == start_min]
         if len(match) != 1:
-            raise ValueError(f"cannot locate interval ending at {end_min} minutes")
+            raise ValueError(f"cannot locate interval starting at {start_min} minutes")
         idx = int(match[0])
         start_label = frame.loc[idx, "t_start"]
         end_label = frame.loc[idx, "t_end"]

@@ -1,9 +1,9 @@
-"""Load attachments 1–3 and align 10-minute endpoint timestamps."""
+"""Load attachments 1–3 and calendar-align 10-minute start timestamps."""
 
 from __future__ import annotations
 
 import json
-from datetime import datetime, time
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -19,30 +19,19 @@ from config import (
     N_INTERVALS,
 )
 
+_CODE_DIR = Path(__file__).resolve().parents[1]
+if str(_CODE_DIR) not in sys.path:
+    sys.path.insert(0, str(_CODE_DIR))
 
-def parse_end_minutes(value) -> int:
-    if isinstance(value, time):
-        minutes = value.hour * 60 + value.minute
-        return 24 * 60 if minutes == 0 else minutes
-    if isinstance(value, datetime):
-        minutes = value.hour * 60 + value.minute
-        return 24 * 60 if minutes == 0 else minutes
-    text = str(value).strip().replace("：", ":")
-    compact = text.replace(" ", "")
-    if "+1" in compact or compact in {"24:00", "24:00:00"}:
-        return 24 * 60
-    parts = compact.split(":")
-    hour = int(parts[0])
-    minute = int(parts[1]) if len(parts) > 1 else 0
-    minutes = hour * 60 + minute
-    return 24 * 60 if minutes == 0 else minutes
-
-
-def _minutes_to_label(minutes: int) -> str:
-    if minutes >= 24 * 60:
-        return "24:00"
-    hour, minute = divmod(int(minutes), 60)
-    return f"{hour:02d}:{minute:02d}"
+from common.time_slots import (  # noqa: E402
+    CALENDAR_END_MIN,
+    CALENDAR_START_MIN,
+    EXPECTED_RAW_START_MIN,
+    minutes_to_label,
+    parse_start_minutes,
+    rotate_typical_day,
+    stitch_year,
+)
 
 
 def _pick_column(columns, keywords: tuple[str, ...]) -> str:
@@ -58,27 +47,28 @@ def load_prices(path: Path | None = None) -> pd.DataFrame:
     price_col = _pick_column(raw.columns, ("电价",))
     load_col = _pick_column(raw.columns, ("负载", "负荷"))
     pv_col = _pick_column(raw.columns, ("光伏",))
+    starts = [parse_start_minutes(v) for v in raw[time_col]]
+    if starts != EXPECTED_RAW_START_MIN:
+        raise ValueError("attachment 1 timestamps are not start labels 00:10 ... 0:00+1")
+    price = rotate_typical_day(pd.to_numeric(raw[price_col], errors="coerce").to_numpy())
+    typical_load = rotate_typical_day(pd.to_numeric(raw[load_col], errors="coerce").to_numpy())
+    typical_pv = rotate_typical_day(pd.to_numeric(raw[pv_col], errors="coerce").to_numpy())
     frame = pd.DataFrame(
         {
-            "t": range(1, len(raw) + 1),
-            "time_raw": raw[time_col],
-            "price": pd.to_numeric(raw[price_col], errors="coerce"),
-            "typical_load_kw": pd.to_numeric(raw[load_col], errors="coerce"),
-            "typical_pv_kw": pd.to_numeric(raw[pv_col], errors="coerce"),
+            "t": range(1, N_INTERVALS + 1),
+            "start_min": CALENDAR_START_MIN,
+            "end_min": CALENDAR_END_MIN,
+            "price": price,
+            "typical_load_kw": typical_load,
+            "typical_pv_kw": typical_pv,
         }
     )
-    if len(frame) != N_INTERVALS:
-        raise ValueError(f"attachment 1 expected {N_INTERVALS} rows, got {len(frame)}")
     if frame[["price", "typical_load_kw", "typical_pv_kw"]].isna().any().any():
         raise ValueError("attachment 1 has missing numeric values")
     if (frame["price"] <= 0).any() or (frame["typical_load_kw"] <= 0).any() or (frame["typical_pv_kw"] < 0).any():
         raise ValueError("attachment 1 has invalid price/load/PV")
-    frame["end_min"] = frame["time_raw"].map(parse_end_minutes)
-    frame["start_min"] = frame["end_min"] - 10
-    if frame["end_min"].tolist() != list(range(10, 24 * 60 + 1, 10)):
-        raise ValueError("attachment 1 timestamps are not a continuous 10-minute cover")
-    frame["t_start"] = frame["start_min"].map(_minutes_to_label)
-    frame["t_end"] = frame["end_min"].map(_minutes_to_label)
+    frame["t_start"] = frame["start_min"].map(minutes_to_label)
+    frame["t_end"] = frame["end_min"].map(lambda m: "24:00" if int(m) >= 24 * 60 else minutes_to_label(m))
     return frame
 
 
@@ -93,7 +83,11 @@ def _wide_sheet(path: Path, sheet: str) -> tuple[pd.DatetimeIndex, np.ndarray, l
     return dates, values, slot_cols
 
 
-def load_year_actuals(path: Path | None = None) -> dict:
+def load_year_actuals(
+    path: Path | None = None,
+    jan1_load: float | None = None,
+    jan1_pv: float | None = None,
+) -> dict:
     source = path or ATTACHMENT2_XLSX
     load_dates, load_kw, load_cols = _wide_sheet(source, "小区负载")
     pv_dates, pv_kw, pv_cols = _wide_sheet(source, "光伏发电实际功率")
@@ -107,23 +101,23 @@ def load_year_actuals(path: Path | None = None) -> dict:
         raise ValueError("attachment 2 has missing values")
     if (load_kw < 0).any() or (pv_kw < 0).any():
         raise ValueError("attachment 2 has negative load or PV")
-
-    slot_end_min = np.array([parse_end_minutes(c) for c in load_cols], dtype=int)
-    expected = np.array(list(range(10, 24 * 60 + 1, 10)), dtype=int)
-    if not np.array_equal(slot_end_min, expected):
-        raise ValueError("attachment 2 time columns are not a continuous 10-minute cover")
-
+    starts = [parse_start_minutes(c) for c in load_cols]
+    if starts != EXPECTED_RAW_START_MIN:
+        raise ValueError("attachment 2 time columns are not start labels 00:10 ... 0:00+1")
+    if jan1_load is None or jan1_pv is None:
+        raise ValueError("jan1 midnight fill from typical day is required")
+    load_kw = stitch_year(load_kw, jan1_load)
+    pv_kw = stitch_year(pv_kw, jan1_pv)
     diffs = load_dates.diff().dropna()
     if not (diffs == pd.Timedelta(days=1)).all():
         raise ValueError("attachment 2 dates are not consecutive calendar days")
-
     return {
         "dates": load_dates.reset_index(drop=True),
         "load_kw": load_kw,
         "pv_kw": pv_kw,
         "load_kwh": load_kw * DT_HOURS,
         "pv_kwh": pv_kw * DT_HOURS,
-        "slot_end_min": slot_end_min,
+        "slot_end_min": np.array(CALENDAR_END_MIN, dtype=int),
         "slot_cols": load_cols,
     }
 
@@ -177,6 +171,7 @@ def audit_data(prices: pd.DataFrame, year: dict, forecasts: dict) -> dict:
         "fc_kw_min": float(np.min(forecasts["hourly_kw"])),
         "fc_kw_max": float(np.max(forecasts["hourly_kw"])),
         "dt_hours": DT_HOURS,
+        "alignment": "start_clock_stitched_to_calendar",
     }
 
 
