@@ -35,6 +35,10 @@ from config import (
     PREVIOUS_OFFICIAL_M1_COST,
     PV_P0_MODE,
     PV_P0_MODES,
+    Q_EVENING,
+    Q_LOCK,
+    Q_OPEN,
+    LOOKAHEAD_HOURS,
     RESERVE_GAMMA,
     RESULT3_TEMPLATE_XLSX,
     RESULT_DIR,
@@ -43,6 +47,7 @@ from export_results import export_paper_tables, export_result3
 from load_data import audit_data, load_prices, load_pv_hourly_forecasts, load_year_actuals, write_clean
 from load_xgb import ensure_xgb_load
 from pv_forecast import aligned_actual_pv, causal_sigma, interpolate_all
+from quantile import QuantileBank
 from rolling import POLICIES, run_span
 from validate import leakage_errors, official_errors, summarize
 
@@ -114,6 +119,7 @@ def run_phase(
     policy_names: list[str] | None = None,
     export: bool = True,
     out_dir: Path | None = None,
+    quantile_bank=None,
 ) -> dict:
     dates = bundle["year"]["dates"]
     start_day = _day_index(dates, OFFICIAL_START)
@@ -141,6 +147,10 @@ def run_phase(
     metrics = {}
     payloads = {}
     names = policy_names or _policy_names(phase, None)
+    if quantile_bank is None and any(
+        n != "oracle" and POLICIES[n].q_lock is not None for n in names
+    ):
+        quantile_bank = QuantileBank.build(bundle)
     for name in names:
         t0 = time.perf_counter()
         if name == "oracle":
@@ -172,9 +182,12 @@ def run_phase(
                 sigma_fn,
                 POLICIES[name],
                 oracle=False,
+                quantile_bank=quantile_bank,
             )
         elapsed = time.perf_counter() - t0
-        leak = leakage_errors(payload["records"], load_kwh, dates, typical)
+        leak = leakage_errors(
+            payload["records"], load_kwh, dates, typical, quantile_bank=quantile_bank
+        )
         gate = official_errors(
             payload["official"],
             dates,
@@ -250,6 +263,15 @@ def main() -> int:
         default=RESERVE_GAMMA,
         help="hold SOC back for later dearer deficits; 0 keeps the greedy Q2 rule",
     )
+    parser.add_argument(
+        "--lookahead-hours",
+        type=int,
+        default=LOOKAHEAD_HOURS,
+        help="24 keeps frozen LA; 48 is rest of today plus a full next day",
+    )
+    parser.add_argument("--q-lock", type=float, default=Q_LOCK)
+    parser.add_argument("--q-open", type=float, default=Q_OPEN)
+    parser.add_argument("--q-evening", type=float, default=Q_EVENING)
     args = parser.parse_args()
     if args.out_dir and not args.no_export:
         raise SystemExit("--out-dir is for experiments; pass --no-export as well")
@@ -257,16 +279,30 @@ def main() -> int:
         raise SystemExit("--pv-p0 changes the frozen inputs; route it to --out-dir")
     if args.reserve_gamma != RESERVE_GAMMA and not args.out_dir:
         raise SystemExit("--reserve-gamma changes the playback rule; route it to --out-dir")
+    if args.lookahead_hours != LOOKAHEAD_HOURS and not args.out_dir:
+        raise SystemExit("--lookahead-hours changes the frozen horizon; route it to --out-dir")
+    if args.q_lock is not None and not args.out_dir:
+        raise SystemExit("--q-lock changes the frozen buffer; route it to --out-dir")
     RESULT_DIR.mkdir(parents=True, exist_ok=True)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     started = time.perf_counter()
     exp_dir = (EXP_DIR / args.out_dir) if args.out_dir else None
     bundle = load_bundle(p0_mode=args.pv_p0, write=exp_dir is None)
     names = _policy_names(args.phase, args.policies)
-    if args.reserve_gamma != RESERVE_GAMMA:
-        for name in names:
-            if name in POLICIES:
-                POLICIES[name] = replace(POLICIES[name], reserve_gamma=args.reserve_gamma)
+    for name in names:
+        if name not in POLICIES:
+            continue
+        updates = {}
+        if args.reserve_gamma != RESERVE_GAMMA:
+            updates["reserve_gamma"] = args.reserve_gamma
+        if args.lookahead_hours != LOOKAHEAD_HOURS:
+            updates["lookahead_hours"] = args.lookahead_hours
+        if args.q_lock is not None:
+            updates["q_lock"] = args.q_lock
+            updates["q_open"] = args.q_open if args.q_open is not None else 0.5
+            updates["q_evening"] = args.q_evening if args.q_evening is not None else 0.5
+        if updates:
+            POLICIES[name] = replace(POLICIES[name], **updates)
     result = run_phase(
         bundle,
         args.phase,
@@ -303,6 +339,10 @@ def main() -> int:
         "ran_policies": names,
         "pv_p0_mode": args.pv_p0,
         "reserve_gamma": args.reserve_gamma,
+        "lookahead_hours": args.lookahead_hours,
+        "q_lock": args.q_lock,
+        "q_open": args.q_open,
+        "q_evening": args.q_evening,
     }
     freeze = result["metrics"].get("freeze_official")
     if args.no_export:

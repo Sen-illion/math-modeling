@@ -11,11 +11,15 @@ from config import (
     E0_JAN1_KWH,
     E_MAX_KWH,
     E_MIN_KWH,
+    ISSUE_HOURS,
+    LOCK_SLOTS,
+    N_INTERVALS,
     OFFICIAL_END,
     OFFICIAL_START,
     REL_TOL,
 )
 from load_forecast import forecast_day_kw, tomorrow_forecast_kw
+from quantile import q_vector
 from simulate import validate_actual
 
 
@@ -43,7 +47,13 @@ def recompute_day_cost(price: np.ndarray, g_plan: np.ndarray, g_adj: np.ndarray,
     }
 
 
-def leakage_errors(records: list[dict], load_kwh: np.ndarray, dates, typical_kw: np.ndarray) -> list[str]:
+def leakage_errors(
+    records: list[dict],
+    load_kwh: np.ndarray,
+    dates,
+    typical_kw: np.ndarray,
+    quantile_bank=None,
+) -> list[str]:
     errors = []
     load_kw = load_kwh / DT_HOURS
     n_days = load_kw.shape[0]
@@ -77,6 +87,29 @@ def leakage_errors(records: list[dict], load_kwh: np.ndarray, dates, typical_kw:
             rec["g_plan_kwh"], rec["g_adj_kwh"], atol=ABS_TOL_KWH, rtol=0
         ):
             errors.append(f"day {day} no-adjust run changed remaining contract")
+        if rec.get("q_lock") is not None:
+            if quantile_bank is None:
+                errors.append(f"day {day} used quantiles but no residual bank was provided")
+            elif day >= 7:
+                for upd in rec["updates"]:
+                    stored = upd.get("load_q_offset_kw")
+                    if stored is None:
+                        continue
+                    hour = int(upd["hour"])
+                    iss = ISSUE_HOURS.index(hour)
+                    n_horizon = int(upd["n_horizon"])
+                    n_today = N_INTERVALS - hour * 6
+                    q_vec = q_vector(
+                        n_horizon,
+                        n_today,
+                        float(rec["q_lock"]),
+                        float(rec.get("q_open") if rec.get("q_open") is not None else 0.5),
+                        float(rec.get("q_evening") if rec.get("q_evening") is not None else 0.5),
+                        LOCK_SLOTS,
+                    )
+                    expected, _pv = quantile_bank.offsets(day, iss, n_horizon, q_vec)
+                    if not np.allclose(stored, expected, atol=1e-8, rtol=0):
+                        errors.append(f"day {day} h={hour} quantile offset is not the causal bank")
     if n_days < 0:
         errors.append("empty year")
     return errors
@@ -125,6 +158,11 @@ def summarize(official: list[dict]) -> dict:
     n_adjust_days = int(
         sum(any(u["hour"] > 0 and u["adjusted"] for u in r["updates"]) for r in official)
     )
+    dp = float(sum(r["bill"]["delta_plus_kwh"] for r in official))
+    dm = float(sum(r["bill"]["delta_minus_kwh"] for r in official))
+    soc24 = np.array([r["actual"]["soc24_kwh"] for r in official], dtype=float)
+    em = np.vstack([r["actual"]["emergency_kwh"] for r in official]) if official else np.zeros((0, 144))
+    em_20 = float(em[:, 120:126].sum()) if official else 0.0
     return {
         "n_days": len(official),
         "total_cost": total,
@@ -133,4 +171,9 @@ def summarize(official: list[dict]) -> dict:
         "emergency_kwh": em_kwh,
         "adj_purchase_kwh": adj_kwh,
         "n_days_with_intraday_adjust": n_adjust_days,
+        "delta_plus_kwh": dp,
+        "delta_minus_kwh": dm,
+        "soc24_median": float(np.median(soc24)) if len(soc24) else None,
+        "soc24_at_min_days": int(np.sum(soc24 <= 1250.0)) if len(soc24) else 0,
+        "emergency_share_20h": (em_20 / em_kwh) if em_kwh > 0 else 0.0,
     }

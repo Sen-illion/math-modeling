@@ -67,6 +67,19 @@ BETA_OPEN_GRID = (0.0, 0.2, 0.5, 1.0)
 # Playback SOC reserve. 0.0 keeps the price-blind greedy rule shared with Q2.
 RESERVE_GAMMA = 0.0
 
+# Look-ahead length from the issue clock. 24 reproduces frozen LA (n_horizon=144).
+# 48 means rest of today plus a full next day, capped at 288 slots.
+LOOKAHEAD_HOURS = 24
+
+# Net-load residual quantiles. None keeps the frozen beta-sigma buffer.
+# Non-None replaces beta: load uses q, PV uses 1-q, same sign as Q2 (actual - forecast).
+Q_LOCK = None
+Q_OPEN = None
+Q_EVENING = None
+Q_LOCK_GRID = (0.50, 0.70, 0.80, 0.85, 0.90)
+Q_EVENING_GRID = (0.50, 0.70)
+Q_OPEN_DEFAULT = 0.50
+
 ABS_TOL_KWH = 1e-3
 REL_TOL = 1e-4
 SIMULTANEOUS_TOL = 1e-4

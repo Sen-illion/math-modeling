@@ -1,0 +1,15 @@
+{
+  "LA": {
+    "n_days": 334,
+    "total_cost": 13418569.964612762,
+    "plan_only_cost": 12413458.832295982,
+    "emergency_cost": 420237.4808801432,
+    "emergency_kwh": 70167.512432143,
+    "adj_purchase_kwh": 20615399.225575235,
+    "n_days_with_intraday_adjust": 334,
+    "elapsed_s": 176.9444788999972,
+    "leakage_errors": [],
+    "gate_errors": []
+  },
+  "official_winner": "LA"
+}

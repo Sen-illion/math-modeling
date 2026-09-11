@@ -93,3 +93,36 @@ def conservative_pv_kwh(
     beta[: min(lock_slots, len(interp_kw_issue))] = beta_lock
     pv_kw = np.maximum(0.0, interp_kw_issue - beta * sigma_issue)
     return pv_kw * DT_HOURS
+
+
+def horizon_pv_kw(interp_kw: np.ndarray, day: int, iss: int, n_horizon: int) -> np.ndarray:
+    """Issue-relative PV, then the rest of tomorrow from the next day's 0:00 issue.
+
+    The first 144 slots are already issued at `iss`. Anything longer is calendar
+    tomorrow from the same clock hour to 24:00, taken from day+1's 0:00 forecast.
+    """
+    first = np.asarray(interp_kw[day, iss], dtype=float)
+    if n_horizon <= first.size:
+        return first[:n_horizon].copy()
+    extra_n = n_horizon - first.size
+    start = ISSUE_HOURS[iss] * 6
+    n_days = interp_kw.shape[0]
+    if day + 1 < n_days:
+        extra = np.asarray(interp_kw[day + 1, 0, start : start + extra_n], dtype=float)
+        if extra.size < extra_n:
+            extra = np.pad(extra, (0, extra_n - extra.size))
+    else:
+        extra = np.zeros(extra_n)
+    return np.concatenate([first, extra])
+
+
+def horizon_sigma(sigma: np.ndarray, iss: int, start_slot: int, n_horizon: int) -> np.ndarray:
+    """Extend the 144-slot issue sigma with the 0:00-issue pattern for tomorrow."""
+    first = np.asarray(sigma[iss], dtype=float)
+    if n_horizon <= first.size:
+        return first[:n_horizon].copy()
+    extra_n = n_horizon - first.size
+    extra = np.asarray(sigma[0, start_slot : start_slot + extra_n], dtype=float)
+    if extra.size < extra_n:
+        extra = np.pad(extra, (0, extra_n - extra.size))
+    return np.concatenate([first, extra])

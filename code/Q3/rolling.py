@@ -18,13 +18,18 @@ from config import (
     ETA_DISCHARGE,
     ISSUE_HOURS,
     LOCK_SLOTS,
+    LOOKAHEAD_HOURS,
     N_INTERVALS,
+    Q_EVENING,
+    Q_LOCK,
+    Q_OPEN,
     RESERVE_GAMMA,
     SELECT_EPS,
 )
 from load_forecast import forecast_day_kw, horizon_load_kw, tomorrow_forecast_kw
 from model_lp import solve_rolling_lp
-from pv_forecast import conservative_pv_kwh
+from pv_forecast import conservative_pv_kwh, horizon_pv_kw, horizon_sigma
+from quantile import apply_net_quantile, q_vector
 from simulate import simulate_range, simulate_day, validate_actual
 
 
@@ -43,6 +48,10 @@ class Policy:
     beta_open: float = BETA_OPEN
     lock_slots: int = LOCK_SLOTS
     reserve_gamma: float = RESERVE_GAMMA
+    lookahead_hours: int = LOOKAHEAD_HOURS
+    q_lock: float | None = Q_LOCK
+    q_open: float | None = Q_OPEN
+    q_evening: float | None = Q_EVENING
 
 
 POLICIES = {
@@ -93,6 +102,18 @@ def settlement(price: np.ndarray, g_plan: np.ndarray, g_adj: np.ndarray, emergen
     }
 
 
+def _horizon_n(policy: Policy, n_today: int) -> int:
+    """Frozen look-ahead is 24 h from the issue clock (144 slots).
+
+    LOOKAHEAD_HOURS=48 means the rest of today plus a full next day.
+    """
+    if not policy.look_ahead:
+        return n_today
+    if policy.lookahead_hours <= 24:
+        return N_INTERVALS
+    return min(n_today + N_INTERVALS, policy.lookahead_hours * 6, 2 * N_INTERVALS)
+
+
 def _horizon_price(price144: np.ndarray, start_slot: int, n_horizon: int) -> np.ndarray:
     idx = (start_slot + np.arange(n_horizon)) % N_INTERVALS
     return price144[idx]
@@ -109,6 +130,7 @@ def run_day(
     sigma: np.ndarray,
     soc0: float,
     policy: Policy,
+    quantile_bank=None,
 ) -> dict:
     g_plan = np.zeros(N_INTERVALS)
     g_adj = np.zeros(N_INTERVALS)
@@ -125,7 +147,7 @@ def run_day(
     for iss, hour in enumerate(ISSUE_HOURS):
         start_slot = hour * 6
         n_today = N_INTERVALS - start_slot
-        n_horizon = N_INTERVALS if policy.look_ahead else n_today
+        n_horizon = _horizon_n(policy, n_today)
         price_h = _horizon_price(price144, start_slot, n_horizon)
         load_kw_h = horizon_load_kw(
             load_kwh / DT_HOURS,
@@ -136,11 +158,27 @@ def run_day(
             n_horizon,
             load_kw_today if hour > 0 else None,
         )
-        pv_point = interp_kw[day, iss, :n_horizon]
-        if policy.use_buffer:
+        pv_point = horizon_pv_kw(interp_kw, day, iss, n_horizon)
+        use_quantile = policy.q_lock is not None
+        q_off_load = None
+        q_off_pv = None
+        if use_quantile:
+            if quantile_bank is None:
+                raise RuntimeError("q_lock set without a residual bank")
+            q_vec = q_vector(
+                n_horizon,
+                n_today,
+                float(policy.q_lock),
+                float(policy.q_open if policy.q_open is not None else 0.5),
+                float(policy.q_evening if policy.q_evening is not None else 0.5),
+                policy.lock_slots,
+            )
+            q_off_load, q_off_pv = quantile_bank.offsets(day, iss, n_horizon, q_vec)
+            load_kw_h, pv_point = apply_net_quantile(load_kw_h, pv_point, q_off_load, q_off_pv)
+        if (not use_quantile) and policy.use_buffer:
             pv_h = conservative_pv_kwh(
                 pv_point,
-                sigma[iss, :n_horizon],
+                horizon_sigma(sigma, iss, start_slot, n_horizon),
                 policy.beta_lock,
                 policy.beta_open,
                 policy.lock_slots,
@@ -244,6 +282,8 @@ def run_day(
                         "objective": float(chosen["objective"]),
                         "keep_objective": None,
                         "pv_l1_kwh": 0.0,
+                        "n_horizon": n_horizon,
+                        "q_lock": policy.q_lock,
                     }
                 )
                 break
@@ -268,6 +308,10 @@ def run_day(
                 "objective": None if chosen is None else float(chosen["objective"]),
                 "keep_objective": None if keep_obj is None else float(keep_obj),
                 "pv_l1_kwh": pv_l1,
+                "n_horizon": n_horizon,
+                "q_lock": policy.q_lock,
+                "load_q_offset_kw": None if q_off_load is None else q_off_load.copy(),
+                "pv_q_offset_kw": None if q_off_pv is None else q_off_pv.copy(),
             }
         )
 
@@ -317,6 +361,10 @@ def run_day(
         "updates": updates,
         "load_fc0_kw": load_fc0,
         "load_fc_tomorrow_kw": load_fc_tomorrow,
+        "q_lock": policy.q_lock,
+        "q_open": policy.q_open,
+        "q_evening": policy.q_evening,
+        "lookahead_hours": policy.lookahead_hours,
     }
 
 
@@ -363,6 +411,7 @@ def run_span(
     sigma_fn,
     policy: Policy | None,
     oracle: bool = False,
+    quantile_bank=None,
 ) -> dict:
     n_days = end_day - start_day
     days = list(range(warmup_start, end_day))
@@ -388,6 +437,7 @@ def run_span(
                 sigma,
                 soc,
                 policy,
+                quantile_bank=quantile_bank,
             )
         rec["day"] = day
         rec["date"] = str(pd.Timestamp(dates.iloc[day]).date())
