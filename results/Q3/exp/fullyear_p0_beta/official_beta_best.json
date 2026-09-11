@@ -1,0 +1,12 @@
+{
+  "policy": "LA_bl1_bo0.2_ls36",
+  "beta_lock": 1.0,
+  "beta_open": 0.2,
+  "lock_slots": 36,
+  "pv_p0_mode": "measured",
+  "total_cost": 13458730.29914341,
+  "plan_only_cost": 12410876.59445206,
+  "emergency_cost": 442684.0050351729,
+  "emergency_kwh": 82228.36434132625,
+  "vs_frozen_beta": 0.0
+}
