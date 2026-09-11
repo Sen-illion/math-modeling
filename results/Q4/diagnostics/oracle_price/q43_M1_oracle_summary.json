@@ -1,0 +1,19 @@
+{
+  "n_days": 334,
+  "total_cost": 14150922.483567754,
+  "plan_only_cost": 12985944.590441374,
+  "emergency_cost": 519571.0843630995,
+  "emergency_kwh": 105742.43353549289,
+  "adj_purchase_kwh": 20637088.79874697,
+  "n_days_with_intraday_adjust": 334,
+  "elapsed_s": 104.00314659999276,
+  "leakage_errors": [],
+  "gate_errors": [],
+  "plan_source": "oracle",
+  "plan_price": "attachment4_oracle_locked_all_day",
+  "diagnostic_only": true,
+  "settle_price": "attachment4_actual",
+  "end_date": "2025-12-31",
+  "price_source": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\problem_files\\附件\\附件4.xlsx",
+  "pv_p0_mode": "measured"
+}

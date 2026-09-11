@@ -1,0 +1,29 @@
+{
+  "created_at": "2026-09-11T16:45:53.690841+00:00",
+  "comparison": {
+    "q4_2": {
+      "baseline_policy": "C_pv7d_q82",
+      "baseline_total_cost": 14480739.959382232,
+      "candidate_policy": "D_pv7d_adaptive",
+      "candidate_total_cost": 14411957.355271261,
+      "delta": -68782.6041109711,
+      "baseline_emergency_kwh": 65421.48488435633,
+      "candidate_emergency_kwh": 79132.69170777654,
+      "promoted": true
+    },
+    "q4_3": {
+      "baseline_policy": "M1",
+      "baseline_total_cost": 14233917.42933525,
+      "candidate_policy": "LA",
+      "candidate_total_cost": 14217728.666339306,
+      "delta": -16188.762995943427,
+      "baseline_emergency_kwh": 98741.11055484522,
+      "candidate_emergency_kwh": 92795.33233211191,
+      "promoted": true
+    }
+  },
+  "promoted": {
+    "q4_2": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q4\\result4-2.xlsx",
+    "q4_3": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q4\\result4-3.xlsx"
+  }
+}

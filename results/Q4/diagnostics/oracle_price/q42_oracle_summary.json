@@ -1,0 +1,22 @@
+{
+  "policy": "C_pv7d_q82",
+  "plan_source": "oracle",
+  "plan_price": "attachment4_oracle_diagnostic",
+  "diagnostic_only": true,
+  "settle_price": "attachment4_actual",
+  "n_official_days": 334,
+  "total_cost": 14398673.773153087,
+  "plan_cost": 13971956.78414759,
+  "emergency_cost": 426716.9890054963,
+  "emergency_kwh": 69127.35326387,
+  "purchase_kwh": 21829585.81545731,
+  "feb1_soc0": 6000.0,
+  "elapsed_s": 217.4264754000178,
+  "forecast_s": 190.83805810000922,
+  "n_validation_errors": 0,
+  "validation_errors_head": [],
+  "price_leakage": [],
+  "n_price_leakage": 0,
+  "end_date": "2025-12-31",
+  "price_source": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\problem_files\\附件\\附件4.xlsx"
+}

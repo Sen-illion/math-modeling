@@ -1,0 +1,96 @@
+{
+  "created_at": "2026-09-11T16:04:40.360472+00:00",
+  "diagnostic_only": true,
+  "note": "LP may use today's true attachment-4 price; not an official Q4 method.",
+  "settle_price": "attachment4_actual",
+  "hat0_from": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q4\\metrics.json",
+  "price_level": {
+    "att4_mean_official": 0.7575243388223553,
+    "hat0_mean_official": 0.7561809564751014,
+    "att1_typical_mean": 0.7661972222222223,
+    "att4_minus_att1_mean": -0.008672883399867048,
+    "hat0_mae_official": 0.03534525496292461
+  },
+  "comparison": [
+    {
+      "scheme": "Q4-2 C_pv7d_q82",
+      "hat0_total_cost": 14480739.959382232,
+      "oracle_total_cost": 14398673.773153087,
+      "forecast_gap": 82066.18622914515,
+      "forecast_gap_pct": 0.5699565635146265,
+      "frozen_typical_tariff_cost": 13765167.58173598,
+      "env_gap_oracle_minus_frozen": 633506.1914171074,
+      "env_gap_pct": 4.602241038152427,
+      "total_gap_hat0_minus_frozen": 715572.3776462525,
+      "total_gap_pct": 5.1984283765327675
+    },
+    {
+      "scheme": "Q4-3 M1",
+      "hat0_total_cost": 14233917.42933525,
+      "oracle_total_cost": 14150922.483567754,
+      "forecast_gap": 82994.94576749578,
+      "forecast_gap_pct": 0.5864984835007799,
+      "frozen_typical_tariff_cost": 13519092.792762008,
+      "env_gap_oracle_minus_frozen": 631829.6908057462,
+      "env_gap_pct": 4.673610134135789,
+      "total_gap_hat0_minus_frozen": 714824.636573242,
+      "total_gap_pct": 5.287519270198014
+    }
+  ],
+  "gap_shares": [
+    {
+      "scheme": "Q4-2 C_pv7d_q82",
+      "environment_share_of_total_gap": 0.8853139265952562,
+      "forecast_share_of_total_gap": 0.11468607340474378
+    },
+    {
+      "scheme": "Q4-3 M1",
+      "environment_share_of_total_gap": 0.8838946763707521,
+      "forecast_share_of_total_gap": 0.1161053236292479
+    }
+  ],
+  "verdict": "environment: oracle remains around 14 million yuan, so the increase vs Q2/Q3 is mainly the attachment-4 tariff level/shape, not 0:00 forecast error.",
+  "verdict_zh": "费用上涨主要来自附件4真实电价环境，而不是 0:00 预测误差。",
+  "q42_oracle": {
+    "policy": "C_pv7d_q82",
+    "plan_source": "oracle",
+    "plan_price": "attachment4_oracle_diagnostic",
+    "diagnostic_only": true,
+    "settle_price": "attachment4_actual",
+    "n_official_days": 334,
+    "total_cost": 14398673.773153087,
+    "plan_cost": 13971956.78414759,
+    "emergency_cost": 426716.9890054963,
+    "emergency_kwh": 69127.35326387,
+    "purchase_kwh": 21829585.81545731,
+    "feb1_soc0": 6000.0,
+    "elapsed_s": 217.4264754000178,
+    "forecast_s": 190.83805810000922,
+    "n_validation_errors": 0,
+    "validation_errors_head": [],
+    "price_leakage": [],
+    "n_price_leakage": 0,
+    "end_date": "2025-12-31",
+    "price_source": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\problem_files\\附件\\附件4.xlsx"
+  },
+  "q43_m1_oracle": {
+    "n_days": 334,
+    "total_cost": 14150922.483567754,
+    "plan_only_cost": 12985944.590441374,
+    "emergency_cost": 519571.0843630995,
+    "emergency_kwh": 105742.43353549289,
+    "adj_purchase_kwh": 20637088.79874697,
+    "n_days_with_intraday_adjust": 334,
+    "elapsed_s": 104.00314659999276,
+    "leakage_errors": [],
+    "gate_errors": [],
+    "plan_source": "oracle",
+    "plan_price": "attachment4_oracle_locked_all_day",
+    "diagnostic_only": true,
+    "settle_price": "attachment4_actual",
+    "end_date": "2025-12-31",
+    "price_source": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\problem_files\\附件\\附件4.xlsx",
+    "pv_p0_mode": "measured"
+  },
+  "official_xlsx_guard": "untouched"
+}

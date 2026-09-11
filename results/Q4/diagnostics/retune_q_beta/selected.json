@@ -1,0 +1,155 @@
+{
+  "created_at": "2026-09-11T17:31:51.989979+00:00",
+  "protocol": {
+    "inner": [
+      "2025-02-01",
+      "2025-04-30"
+    ],
+    "select": [
+      "2025-05-01",
+      "2025-06-30"
+    ],
+    "tune": [
+      "2025-02-01",
+      "2025-06-30"
+    ],
+    "oos": [
+      "2025-07-01",
+      "2025-12-31"
+    ],
+    "note": "inner must beat the current official rule; select takes the lowest among eligible; promote only if tune and OOS both beat current. No full-year argmin. No fallback if nobody clears inner."
+  },
+  "plan_price": "hat0_expanding_layers",
+  "settle_price": "attachment4_actual",
+  "q4_2": {
+    "n_candidates": 15,
+    "n_eligible_after_inner": 2,
+    "kept_current": false,
+    "eligible_labels": [
+      "resid_vol7_qmin0.60_k0.20",
+      "resid_vol7_qmin0.70_k0.10"
+    ],
+    "current": {
+      "label": "resid_vol7_qmin0.65_k0.20",
+      "feature": "resid_vol7",
+      "q_min": 0.65,
+      "k": 0.2,
+      "full_cost": 14411957.35527126,
+      "full_emergency_kwh": 79132.69170777654,
+      "full_plan_cost": 13925991.712158252,
+      "elapsed_s": 203.0449248000077,
+      "lp_s": 25.461956099999952,
+      "q_counts": "{\"0.7\": 129, \"0.8\": 145, \"0.85\": 60}",
+      "inner_cost": 3413035.837228988,
+      "inner_emergency_kwh": 8208.170125299983,
+      "inner_n_days": 89,
+      "select_cost": 2426341.1776714907,
+      "select_emergency_kwh": 27585.161097299977,
+      "select_n_days": 61,
+      "tune_cost": 5839377.01490048,
+      "tune_emergency_kwh": 35793.33122259996,
+      "tune_n_days": 150,
+      "oos_cost": 8572580.340370782,
+      "oos_emergency_kwh": 43339.36048517657,
+      "oos_n_days": 184,
+      "full_n_days": 334
+    },
+    "selected": {
+      "label": "resid_vol7_qmin0.60_k0.20",
+      "feature": "resid_vol7",
+      "q_min": 0.6,
+      "k": 0.2,
+      "full_cost": 14517356.213060806,
+      "full_emergency_kwh": 144483.1928094803,
+      "full_plan_cost": 13626661.5292215,
+      "elapsed_s": 200.22943840001244,
+      "lp_s": 22.646469700004676,
+      "q_counts": "{\"0.6\": 94, \"0.7\": 102, \"0.8\": 138}",
+      "inner_cost": 3394362.4409798933,
+      "inner_emergency_kwh": 13145.390531428957,
+      "inner_n_days": 89,
+      "select_cost": 2431773.8914423315,
+      "select_emergency_kwh": 35353.30631539628,
+      "select_n_days": 61,
+      "tune_cost": 5826136.332422226,
+      "tune_emergency_kwh": 48498.69684682523,
+      "tune_n_days": 150,
+      "oos_cost": 8691219.88063858,
+      "oos_emergency_kwh": 95984.49596265508,
+      "oos_n_days": 184,
+      "full_n_days": 334
+    },
+    "promote": false,
+    "reason": "OOS window not cheaper"
+  },
+  "q4_3": {
+    "n_candidates": 20,
+    "n_eligible_after_inner": 1,
+    "kept_current": false,
+    "eligible_labels": [
+      "LA_bl1_bo0"
+    ],
+    "current": {
+      "label": "LA_bl1_bo0.2",
+      "policy": "LA",
+      "beta_lock": 1.0,
+      "beta_open": 0.2,
+      "tune_emergency_kwh": 44188.91165070878,
+      "elapsed_s": 52.79898820001108,
+      "inner_cost": 3324441.1581965704,
+      "inner_emergency_kwh": 19849.03747988884,
+      "inner_n_days": 89,
+      "select_cost": 2339066.377702631,
+      "select_emergency_kwh": 24339.874170819938,
+      "select_n_days": 61,
+      "tune_cost": 5663507.535899201,
+      "tune_n_days": 150,
+      "full_cost": 14217728.666339306,
+      "oos_cost": 8554221.130440105
+    },
+    "selected": {
+      "label": "LA_bl1_bo0",
+      "policy": "LA",
+      "beta_lock": 1.0,
+      "beta_open": 0.0,
+      "tune_emergency_kwh": 44463.536215056425,
+      "elapsed_s": 67.2341013999976,
+      "inner_cost": 3323582.93698539,
+      "inner_emergency_kwh": 20076.83900080316,
+      "inner_n_days": 89,
+      "select_cost": 2341872.012993859,
+      "select_emergency_kwh": 24386.69721425326,
+      "select_n_days": 61,
+      "tune_cost": 5665454.949979249,
+      "tune_n_days": 150,
+      "full_cost": 14226321.876826616,
+      "oos_cost": 8560866.926847367,
+      "full_emergency_kwh": 93138.29344049281
+    },
+    "full_year_summary": {
+      "n_days": 334,
+      "total_cost": 14226321.876826616,
+      "plan_only_cost": 12903371.616007747,
+      "emergency_cost": 480760.37671323837,
+      "emergency_kwh": 93138.29344049281,
+      "adj_purchase_kwh": 20557774.419005774,
+      "n_days_with_intraday_adjust": 334,
+      "elapsed_s": 180.716233500003,
+      "leakage_errors": [],
+      "gate_errors": [],
+      "plan_source": "hat0",
+      "plan_price": "hat0_locked_all_day",
+      "diagnostic_only": false,
+      "settle_price": "attachment4_actual",
+      "end_date": "2025-12-31",
+      "price_source": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\problem_files\\附件\\附件4.xlsx",
+      "policy": "LA",
+      "pv_p0_mode": "measured",
+      "beta_lock": 1.0,
+      "beta_open": 0.0
+    },
+    "full_year_rerun": true,
+    "promote": false,
+    "reason": "tune window not cheaper; OOS window not cheaper"
+  }
+}

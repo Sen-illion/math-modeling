@@ -1,0 +1,16 @@
+{
+  "n_days": 14,
+  "total_cost": 686207.2772079717,
+  "plan_only_cost": 646251.7767695914,
+  "emergency_cost": 25412.351829882005,
+  "emergency_kwh": 4873.686330139978,
+  "adj_purchase_kwh": 982534.9405888801,
+  "n_days_with_intraday_adjust": 14,
+  "elapsed_s": 12.069338499990408,
+  "leakage_errors": [],
+  "gate_errors": [],
+  "plan_price": "hat0_locked_all_day",
+  "settle_price": "attachment4_actual",
+  "end_date": "2025-02-14",
+  "price_source": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\problem_files\\附件\\附件4.xlsx"
+}
