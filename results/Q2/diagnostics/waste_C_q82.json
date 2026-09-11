@@ -1,0 +1,14 @@
+{
+  "paid_and_curtailed_kwh": 1240155.9676972337,
+  "paid_and_curtailed_cost": 747206.3172199053,
+  "paid_and_curtailed_share_of_total": 0.05428239887259492,
+  "curtail_total_kwh": 2718045.6602887483,
+  "curtail_when_soc_full_kwh": 2423339.0943954145,
+  "curtail_when_power_capped_kwh": 294706.5658933337,
+  "emergency_kwh": 66910.42763824569,
+  "emergency_cost": 395394.11918522225,
+  "emergency_slots": 542,
+  "emergency_kwh_with_empty_battery": 47129.26753446667,
+  "emergency_kwh_with_energy_left": 19781.160103779017,
+  "days_with_emergency_and_curtail": 120
+}
