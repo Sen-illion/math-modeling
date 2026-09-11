@@ -23,6 +23,26 @@ def _tol(scale: float) -> float:
     return max(ABS_TOL_KWH, REL_TOL * abs(scale))
 
 
+def recompute_day_cost(price: np.ndarray, g_plan: np.ndarray, g_adj: np.ndarray, emergency: np.ndarray) -> dict:
+    """Rebuild settlement from kWh arrays and price. Do not use stored bill fields."""
+    price = np.asarray(price, dtype=float)
+    g_plan = np.asarray(g_plan, dtype=float)
+    g_adj = np.asarray(g_adj, dtype=float)
+    emergency = np.asarray(emergency, dtype=float)
+    dp = np.maximum(g_adj - g_plan, 0.0)
+    dm = np.maximum(g_plan - g_adj, 0.0)
+    grid = float(np.dot(price, g_plan) - 0.5 * np.dot(price, dm) + 1.5 * np.dot(price, dp))
+    em_cost = float(np.dot(5.0 * price, emergency))
+    return {
+        "plan_only_cost": float(np.dot(price, g_plan)),
+        "grid_cost": grid,
+        "emergency_cost": em_cost,
+        "total_cost": grid + em_cost,
+        "delta_plus_kwh": float(dp.sum()),
+        "delta_minus_kwh": float(dm.sum()),
+    }
+
+
 def leakage_errors(records: list[dict], load_kwh: np.ndarray, dates, typical_kw: np.ndarray) -> list[str]:
     errors = []
     load_kw = load_kwh / DT_HOURS
@@ -71,10 +91,10 @@ def official_errors(official: list[dict], dates, soc_track: dict, load_kwh, pv_k
                 for e in validate_actual(rec["actual"], rec["g_adj_kwh"], load_kwh[day], pv_kwh[day])
             ]
         )
+        rebuilt = recompute_day_cost(price144, rec["g_plan_kwh"], rec["g_adj_kwh"], rec["actual"]["emergency_kwh"])
         bill = rec["bill"]
-        recon = rec["bill"]["grid_cost"] + rec["bill"]["emergency_cost"]
-        if abs(recon - bill["total_cost"]) > _tol(max(bill["total_cost"], 1.0)):
-            errors.append(f"{rec['date']} cost mismatch")
+        if abs(rebuilt["total_cost"] - bill["total_cost"]) > _tol(max(bill["total_cost"], 1.0)):
+            errors.append(f"{rec['date']} independent cost mismatch")
         if rec["day"] == 0:
             if abs(rec["actual"]["soc0_kwh"] - E0_JAN1_KWH) > ABS_TOL_KWH:
                 errors.append("Jan 1 SOC0 != 6000")

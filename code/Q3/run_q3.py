@@ -189,6 +189,8 @@ def run_phase(bundle: dict, phase: str, policy_names: list[str] | None = None, e
             raise RuntimeError("N0 must keep the 0:00 contract all day")
         if leak:
             raise RuntimeError(f"{name} leakage: {leak[:8]}")
+        if gate:
+            raise RuntimeError(f"{name} gate: {gate[:8]}")
         if name == "oracle" and "M0" in metrics:
             if metrics["oracle"]["total_cost"] - 1e-6 > metrics["M0"]["total_cost"]:
                 metrics["oracle"]["note"] = "oracle cost above M0"
