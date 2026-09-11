@@ -1,0 +1,74 @@
+{
+  "N0": {
+    "n_days": 14,
+    "total_cost": 675875.6544449091,
+    "plan_only_cost": 603701.4990939172,
+    "emergency_cost": 72174.15535099195,
+    "emergency_kwh": 12553.418526799955,
+    "adj_purchase_kwh": 995432.5254153,
+    "n_days_with_intraday_adjust": 0,
+    "elapsed_s": 6.396082600011141,
+    "leakage_errors": [],
+    "gate_errors": []
+  },
+  "B0": {
+    "n_days": 14,
+    "total_cost": 653375.5429495516,
+    "plan_only_cost": 596786.8900613241,
+    "emergency_cost": 40171.30713545078,
+    "emergency_kwh": 7912.183213733311,
+    "adj_purchase_kwh": 973793.9517206999,
+    "n_days_with_intraday_adjust": 14,
+    "elapsed_s": 21.854543299996294,
+    "leakage_errors": [],
+    "gate_errors": []
+  },
+  "M1": {
+    "n_days": 14,
+    "total_cost": 642805.0896337603,
+    "plan_only_cost": 603518.2402174121,
+    "emergency_cost": 24346.83573442432,
+    "emergency_kwh": 4677.606497199985,
+    "adj_purchase_kwh": 985694.21754649,
+    "n_days_with_intraday_adjust": 14,
+    "elapsed_s": 21.521268800002872,
+    "leakage_errors": [],
+    "gate_errors": []
+  },
+  "M2": {
+    "n_days": 14,
+    "total_cost": 652495.8987017213,
+    "plan_only_cost": 572445.3908405812,
+    "emergency_cost": 19387.900283794388,
+    "emergency_kwh": 3535.040563099988,
+    "adj_purchase_kwh": 987456.8705339901,
+    "n_days_with_intraday_adjust": 14,
+    "elapsed_s": 26.559651700008544,
+    "leakage_errors": [],
+    "gate_errors": []
+  },
+  "M0": {
+    "n_days": 14,
+    "total_cost": 699237.7347507728,
+    "plan_only_cost": 603991.5626134812,
+    "emergency_cost": 96227.01605010516,
+    "emergency_kwh": 16135.733697779286,
+    "adj_purchase_kwh": 971437.9643997198,
+    "n_days_with_intraday_adjust": 12,
+    "elapsed_s": 15.352438700007042,
+    "leakage_errors": [],
+    "gate_errors": []
+  },
+  "oracle": {
+    "n_days": 14,
+    "total_cost": 587989.940208654,
+    "plan_only_cost": 587989.9265816173,
+    "emergency_cost": 0.013627036812814672,
+    "emergency_kwh": 0.0022716197941281993,
+    "adj_purchase_kwh": 968777.439269,
+    "n_days_with_intraday_adjust": 0,
+    "elapsed_s": 6.196716500009643,
+    "leakage_errors": [],
+    "gate_errors": []
+  }
+}

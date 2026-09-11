@@ -18,5 +18,6 @@
   "pv_kw_max": 10216.2,
   "fc_kw_min": 0.0,
   "fc_kw_max": 9995.8875,
-  "dt_hours": 0.16666666666666666
+  "dt_hours": 0.16666666666666666,
+  "alignment": "start_clock_stitched_to_calendar"
 }
