@@ -33,7 +33,7 @@ from config import (
     Q_LADDER,
     Q_WARMUP,
 )
-from model_lp import solve_day_lp
+from model_lp import solve_day_lp, validate_plan
 from simulate import simulate_day, validate_actual
 
 FEATURE_NAMES = ("em7", "resid_vol7", "peak_ratio")
@@ -97,6 +97,8 @@ def run_adaptive(
     rows: list[dict] = []
     traces: list[dict] = []
     errors: list[str] = []
+    load_err: list[np.ndarray] = []
+    pv_err: list[np.ndarray] = []
     t0 = time.perf_counter()
 
     for pred in reference:
@@ -135,9 +137,14 @@ def run_adaptive(
             plan_pred["pv_kw"] * DT_HOURS,
             soc,
         )
+        errors.extend(
+            validate_plan(plan, price, plan_pred["load_kw"] * DT_HOURS, plan_pred["pv_kw"] * DT_HOURS)
+        )
         actual = simulate_day(price, load_act, pv_act, plan["purchase_kwh"], soc)
         errors.extend(validate_actual(actual, plan["purchase_kwh"], load_act, pv_act))
 
+        load_err.append(np.asarray(plan_pred["load_kw"], dtype=float) - year["load_kw"][day])
+        pv_err.append(np.asarray(plan_pred["pv_kw"], dtype=float) - year["pv_kw"][day])
         emergency_kwh = float(actual["emergency_kwh"].sum())
         rows.append(
             {
@@ -150,14 +157,21 @@ def run_adaptive(
                 "feature_percentile": z if z is not None else np.nan,
                 "soc0_actual": float(soc),
                 "soc24_actual": float(actual["soc24_kwh"]),
+                "soc24_plan": float(plan["soc_end_kwh"][-1]),
+                "soc_min_actual": float(np.min(actual["soc_end_kwh"])),
+                "soc_max_actual": float(np.max(actual["soc_end_kwh"])),
                 "purchase_kwh": float(plan["purchase_kwh"].sum()),
                 "plan_cost": float(actual["plan_cost"]),
                 "emergency_kwh": emergency_kwh,
                 "emergency_cost": float(actual["emergency_cost"]),
                 "total_cost": float(actual["plan_cost"] + actual["emergency_cost"]),
                 "curtail_kwh": float(actual["curtail_kwh"].sum()),
+                "emergency_slots": int(actual["n_emergency_slots"]),
                 "n_simultaneous_plan": int(plan["n_simultaneous"]),
                 "max_unserved_kwh": float(actual["max_unserved_kwh"]),
+                "n_negative_predictions": int(
+                    np.sum(np.asarray(plan_pred["load_kw"]) < 0) + np.sum(np.asarray(plan_pred["pv_kw"]) < 0)
+                ),
             }
         )
         if collect_traces:
@@ -182,6 +196,8 @@ def run_adaptive(
         "daily": daily,
         "traces": traces,
         "errors": errors,
+        "load_err_kw": np.vstack(load_err) if load_err else np.zeros((0, 1)),
+        "pv_err_kw": np.vstack(pv_err) if pv_err else np.zeros((0, 1)),
         "rule": {
             "label": label or f"{feature}_qmin{q_min}_k{k}",
             "feature": feature,
@@ -302,6 +318,57 @@ def summarise(result: dict, windows: list[tuple[str, str, str]]) -> dict:
         "windows": {name: window_metrics(daily, start, end, name) for name, start, end in windows},
     }
     return summary
+
+
+def official_summary(result: dict, policy: str, pv_source: str) -> dict:
+    """Same key shape as run_model's summary so the frozen-number guard can compare them."""
+    daily = result["daily"]
+    load_err = result["load_err_kw"]
+    pv_err = result["pv_err_kw"]
+    rule = result["rule"]
+    return {
+        "model": "xgb_expanding",
+        "policy": policy,
+        "terminal_mode": "none",
+        "soc_mu": 0.0,
+        "dispatch": "greedy",
+        "mpc_stride": None,
+        "n_days_run": int(len(daily)),
+        "n_official_days": int(len(daily)),
+        "elapsed_s": result["elapsed_s"],
+        "load_mae_kw": float(np.mean(np.abs(load_err))),
+        "load_rmse_kw": float(np.sqrt(np.mean(load_err**2))),
+        "pv_mae_kw": float(np.mean(np.abs(pv_err))),
+        "pv_rmse_kw": float(np.sqrt(np.mean(pv_err**2))),
+        "purchase_kwh": float(daily["purchase_kwh"].sum()),
+        "plan_cost": float(daily["plan_cost"].sum()),
+        "emergency_kwh": float(daily["emergency_kwh"].sum()),
+        "emergency_slots": int(daily["emergency_slots"].sum()),
+        "emergency_days": int((daily["emergency_kwh"] > 1e-6).sum()),
+        "emergency_cost": float(daily["emergency_cost"].sum()),
+        "total_cost": float(daily["total_cost"].sum()),
+        "curtail_kwh": float(daily["curtail_kwh"].sum()),
+        "n_simultaneous_plan": int(daily["n_simultaneous_plan"].sum()),
+        "n_negative_predictions": int(daily["n_negative_predictions"].sum()),
+        "n_validation_errors": len(result["errors"]),
+        "validation_errors_head": result["errors"][:20],
+        "feb1_soc0": float(daily["soc0_actual"].iloc[0]),
+        "last_soc24_actual": float(daily["soc24_actual"].iloc[-1]),
+        "last_soc24_plan": float(daily["soc24_plan"].iloc[-1]),
+        "mean_soc24_actual": float(daily["soc24_actual"].mean()),
+        "mean_soc24_plan": float(daily["soc24_plan"].mean()),
+        "soc_min_actual": float(daily["soc_min_actual"].min()),
+        "soc_max_actual": float(daily["soc_max_actual"].max()),
+        "soc_init": "feb1_6000",
+        "terminal_lambda": 0.0,
+        "terminal_target_kwh": None,
+        "margin_mode": "adaptive",
+        "margin_rule": rule,
+        "q_load_mean": float(daily["q_load"].mean()),
+        "q_load_counts": {str(q): int(c) for q, c in daily["q_load"].value_counts().sort_index().items()},
+        "q_warmup_days": int((daily["q_source"] == "warmup").sum()),
+        "pv_source": pv_source,
+    }
 
 
 def flatten_for_table(summary: dict) -> dict:

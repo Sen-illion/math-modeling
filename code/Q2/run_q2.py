@@ -41,6 +41,7 @@ from config import (  # noqa: E402
     PHASE1_DIR,
     PHASE1_END,
     PHASE1_MPC_BUDGET_S,
+    PV_SOURCE_V2,
     Q_LADDER,
     REPO_ROOT,
     RESULT2_TEMPLATE_XLSX,
@@ -58,6 +59,7 @@ from adaptive import (  # noqa: E402
     FEATURE_NAMES,
     dumps,
     flatten_for_table,
+    official_summary,
     run_adaptive,
     run_fixed,
     summarise,
@@ -824,6 +826,102 @@ def run_adaptive_full(args) -> None:
     print("wrote", ADAPTIVE_DIR, flush=True)
 
 
+def run_adopt_adaptive(args) -> None:
+    """Promote the gated adaptive rule to the official policy and re-export result2.
+
+    The superseded fixed-0.8 summary and config are archived beside the new ones rather
+    than deleted, so the comparison in the paper keeps a verifiable source.
+    """
+    rule_path = ADAPTIVE_DIR / "selected_rule.json"
+    report_path = ADAPTIVE_DIR / "full_year_summary.json"
+    if not rule_path.exists() or not report_path.exists():
+        raise SystemExit("run --adaptive-tune and --adaptive-full first")
+    rule = json.loads(rule_path.read_text(encoding="utf-8"))
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    if not report["gate"]["passed"]:
+        raise SystemExit("gate did not pass; refusing to adopt")
+
+    prices, year, _point, banks, residuals = _adaptive_inputs(refresh=args.refresh_bank)
+    policy = "D_pv7d_adaptive"
+    print("full-year replay for adoption:", rule["label"], flush=True)
+    result = run_adaptive(
+        prices,
+        year,
+        banks,
+        residuals,
+        OFFICIAL_END,
+        feature=rule["feature"],
+        q_min=float(rule["q_min"]),
+        k=float(rule["k"]),
+        label=policy,
+        collect_traces=True,
+    )
+    summary = official_summary(result, policy, PV_SOURCE_V2)
+    if summary["n_validation_errors"]:
+        raise RuntimeError(f"adoption replay failed: {summary['validation_errors_head']}")
+    want = float(report["adaptive"]["windows"]["full"]["total_cost"])
+    if abs(summary["total_cost"] - want) > 1e-6:
+        raise RuntimeError(f"adoption replay {summary['total_cost']} != gated {want}")
+
+    OPT_DIR.mkdir(parents=True, exist_ok=True)
+    archive = {
+        OPT_DIR / "full_year_summary.json": OPT_DIR / "full_year_summary_C_pv7d_q82.json",
+        OPT_DIR / "selected_config.json": OPT_DIR / "selected_config_C_pv7d_q82.json",
+    }
+    for live, kept in archive.items():
+        if live.exists() and not kept.exists():
+            kept.write_text(live.read_text(encoding="utf-8"), encoding="utf-8")
+            print("archived", live.name, "->", kept.name, flush=True)
+
+    selected = {
+        "name": policy,
+        "pv_source": PV_SOURCE_V2,
+        "q_load": None,
+        "q_pv": None,
+        "soc_mu": 0.0,
+        "dispatch": "greedy",
+        "mpc_stride": None,
+        "margin": {
+            "mode": "adaptive",
+            "feature": rule["feature"],
+            "q_min": float(rule["q_min"]),
+            "k": float(rule["k"]),
+            "ladder": [float(q) for q in rule["ladder"]],
+            "q_warmup": float(rule["q_warmup"]),
+            "warmup_days": int(rule["warmup_days"]),
+            "min_history": int(rule["min_history"]),
+            "formula": "q_L(D) = snap(clip(q_min + k * z(D), min ladder, max ladder)), z = causal percentile",
+        },
+        "supersedes": {
+            "name": "C_pv7d_q82",
+            "total_cost": FROZEN_C_Q82_FULL_YEAR_COST,
+            "archive": "results/Q2/opt/full_year_summary_C_pv7d_q82.json",
+        },
+        "selection": rule.get("selection_protocol"),
+        "evidence": "results/Q2/adaptive/summary.md",
+        "note": (
+            "Official Q2 policy. Margin is chosen per day from resid_vol7; everything else "
+            "matches C_pv7d_q82, which is kept as the fixed-margin comparison."
+        ),
+    }
+    (OPT_DIR / "selected_config.json").write_text(
+        json.dumps(selected, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    (OPT_DIR / "full_year_summary.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    result["daily"].to_csv(OPT_DIR / "daily_D_pv7d_adaptive.csv", index=False, encoding="utf-8-sig")
+
+    dest = export_result2(prices, result["traces"], RESULT2_XLSX)
+    table_paths = export_specified_day_tables(prices, result["traces"])
+    print("wrote", dest, flush=True)
+    for path in table_paths:
+        print("wrote", path, flush=True)
+    print("NEW FROZEN total_cost =", repr(summary["total_cost"]), flush=True)
+    print("superseded C_pv7d_q82 =", repr(FROZEN_C_Q82_FULL_YEAR_COST), flush=True)
+    print("delta =", summary["total_cost"] - FROZEN_C_Q82_FULL_YEAR_COST, flush=True)
+
+
 def run_opt(args) -> None:
     copy_raw_inputs()
     prices = load_prices()
@@ -967,6 +1065,41 @@ def _assert_matches_frozen(summary: dict) -> None:
         raise RuntimeError("export replay does not match frozen V2 summary: " + "; ".join(mismatches))
 
 
+def _export_result2_adaptive(prices: pd.DataFrame, year: dict, selected: dict, margin: dict) -> None:
+    """Official export for the adopted adaptive-margin policy."""
+    dates = year["dates"]
+    end_idx = int(np.where(pd.to_datetime(dates) == pd.Timestamp(OFFICIAL_END))[0][0])
+    point = load_point_bank(prices, year, 0, end_idx)
+    check_length(point)
+    ladder = tuple(margin.get("ladder") or Q_LADDER)
+    banks = ladder_banks(point, year, ladder)
+    residuals = point_residual_history(point, year)
+    print("replay official adaptive policy", selected["name"], "with slot traces", flush=True)
+    result = run_adaptive(
+        prices,
+        year,
+        banks,
+        residuals,
+        OFFICIAL_END,
+        feature=margin["feature"],
+        q_min=float(margin["q_min"]),
+        k=float(margin["k"]),
+        ladder=ladder,
+        label=selected["name"],
+        collect_traces=True,
+    )
+    summary = official_summary(result, selected["name"], selected["pv_source"])
+    if summary["n_validation_errors"]:
+        raise RuntimeError(f"result2 replay failed: {summary['validation_errors_head']}")
+    _assert_matches_frozen(summary)
+    dest = export_result2(prices, result["traces"], RESULT2_XLSX)
+    table_paths = export_specified_day_tables(prices, result["traces"])
+    print("wrote", dest, flush=True)
+    for path in table_paths:
+        print("wrote", path, flush=True)
+    print(json.dumps(summary, ensure_ascii=False), flush=True)
+
+
 def run_export_result2() -> None:
     copy_raw_inputs()
     prices = load_prices()
@@ -976,6 +1109,10 @@ def run_export_result2() -> None:
     if not selected_path.exists():
         raise SystemExit("missing results/Q2/opt/selected_config.json; run --opt --phase1-tune first")
     selected = json.loads(selected_path.read_text(encoding="utf-8"))
+    margin = selected.get("margin") or {"mode": "fixed"}
+    if margin.get("mode") == "adaptive":
+        _export_result2_adaptive(prices, year, selected, margin)
+        return
     dates = year["dates"]
     end_idx = int(np.where(pd.to_datetime(dates) == pd.Timestamp(OFFICIAL_END))[0][0])
     start_idx = 0
@@ -1031,8 +1168,12 @@ def main() -> None:
     parser.add_argument("--export-result2", action="store_true")
     parser.add_argument("--adaptive-tune", action="store_true")
     parser.add_argument("--adaptive-full", action="store_true")
+    parser.add_argument("--adopt-adaptive", action="store_true")
     parser.add_argument("--refresh-bank", action="store_true")
     args = parser.parse_args()
+    if args.adopt_adaptive:
+        run_adopt_adaptive(args)
+        return
     if args.export_result2:
         run_export_result2()
         return

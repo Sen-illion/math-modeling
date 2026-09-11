@@ -1,11 +1,40 @@
 {
-  "name": "C_pv7d_q82",
+  "name": "D_pv7d_adaptive",
   "pv_source": "baseline_7d",
-  "q_load": 0.8,
-  "q_pv": 0.2,
+  "q_load": null,
+  "q_pv": null,
   "soc_mu": 0.0,
   "dispatch": "greedy",
-  "mpc_stride": 1,
-  "source_commit": "d0d3e50",
-  "note": "Official V2 policy. Phase-1 grid is not re-run; full year is re-run after start-align."
+  "mpc_stride": null,
+  "margin": {
+    "mode": "adaptive",
+    "feature": "resid_vol7",
+    "q_min": 0.65,
+    "k": 0.2,
+    "ladder": [
+      0.6,
+      0.7,
+      0.8,
+      0.85,
+      0.9
+    ],
+    "q_warmup": 0.8,
+    "warmup_days": 7,
+    "min_history": 21,
+    "formula": "q_L(D) = snap(clip(q_min + k * z(D), min ladder, max ladder)), z = causal percentile"
+  },
+  "supersedes": {
+    "name": "C_pv7d_q82",
+    "total_cost": 13765167.58173598,
+    "archive": "results/Q2/opt/full_year_summary_C_pv7d_q82.json"
+  },
+  "selection": {
+    "step1": "beat fixed 0.8 on inner window 2025-02-01..2025-04-30",
+    "step2": "lowest total cost on select window 2025-05-01..2025-06-30",
+    "n_candidates": 45,
+    "n_eligible_after_step1": 5,
+    "fell_back_to_full_pool": false
+  },
+  "evidence": "results/Q2/adaptive/summary.md",
+  "note": "Official Q2 policy. Margin is chosen per day from resid_vol7; everything else matches C_pv7d_q82, which is kept as the fixed-margin comparison."
 }

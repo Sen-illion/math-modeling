@@ -40,8 +40,12 @@ TUNE_SELECT_START = "2025-05-01"
 Q_LADDER = (0.6, 0.7, 0.8, 0.85, 0.9)
 Q_WARMUP = 0.8
 ADAPTIVE_WARMUP_DAYS = 7
-# Frozen start-aligned C_pv7d_q82 official total (results/Q2/opt/full_year_summary.json).
+# Superseded fixed-margin baseline C_pv7d_q82, kept as the comparison the adaptive gate
+# must beat (results/Q2/opt/full_year_summary_C_pv7d_q82.json).
 FROZEN_C_Q82_FULL_YEAR_COST = 13765167.58173598
+# Official frozen total after adopting the adaptive margin, policy D_pv7d_adaptive
+# (results/Q2/opt/full_year_summary.json, results/Q2/result2.xlsx).
+FROZEN_OFFICIAL_FULL_YEAR_COST = 13697499.169779435
 
 # Official Q2 V1 keeps no end-of-day SOC value in the day-ahead LP.
 TERMINAL_TARGET_KWH = 6000.0

@@ -8,7 +8,11 @@ python run_q2.py --adaptive-full          # 冻结参数后跑全年，出门禁
 python adaptive_oos_sweep.py              # 样本内胜出者的样本外复查
 python adaptive_split_robustness.py       # 嵌套切分位置的稳健性
 python plot_adaptive.py                   # 自指反馈检查与时间序列图
+python run_q2.py --adopt-adaptive         # 队员确认后提升为正式策略并重导 result2
 ```
+
+**结论提要**：已采纳为正式策略 `D_pv7d_adaptive`，全年 13697499.17 元（较固定 0.8 省 67668.41 元，0.49%）。
+第 6 节列出采纳动作，第 2 节和第 4 节列出必须在论文中披露的方法学瑕疵与稳健性边界。
 
 ## 1. 方法
 
@@ -127,19 +131,28 @@ q_L(D)=\mathrm{snap}\Big(\mathrm{clip}\big(q_{\min}+k\,z(D),\ 0.6,\ 0.9\big)\Big
 并保持了 84 天，样本外收益主要来自这一段——冬季好预测，原先的厚裕度是纯浪费。
 这个机制有物理解释，不是拟合出来的巧合。
 
-## 6. 采纳状态：**未采纳，等待队员确认**
+## 6. 采纳状态：**已采纳为正式策略 `D_pv7d_adaptive`**
 
-门禁通过，但**没有覆盖** `results/Q2/result2.xlsx` 与 `results/Q2/opt/`，冻结数字仍是 13765167.58。
-候选工作簿暂存在 `results/Q2/adaptive/result2_adaptive.xlsx`。理由：
+队员确认后执行 `python run_q2.py --adopt-adaptive`，已完成：
 
-1. 收益 0.49% 与稳健性下行 0.43% 同量级，属于需要人工取舍的边界情形。
-2. 嵌套选参协议是看过样本外表之后写的（第 2 节已披露），方法学上不够干净；
-   竞赛论文里方法的可辩护性比 0.5% 的费用更重要。
-3. `AGENTS.md` 规定模型取舍与最终提交由队员确认。
+- 旧的固定裕度汇总与配置归档为 `results/Q2/opt/full_year_summary_C_pv7d_q82.json`
+  与 `selected_config_C_pv7d_q82.json`，没有删除，论文对照仍可溯源。
+- 新写 `results/Q2/opt/selected_config.json`（含 `margin` 块描述规则）、
+  `full_year_summary.json`、`daily_D_pv7d_adaptive.csv`。
+- 重导 `results/Q2/result2.xlsx`、`result2_checks.json` 与四个指定日表格
+  （`results/Q2/specified_days/` 与 `paper/assets/tables/`）。
+- `config.py` 新增 `FROZEN_OFFICIAL_FULL_YEAR_COST = 13697499.169779435`；
+  `FROZEN_C_Q82_FULL_YEAR_COST` 保留为门禁要超越的对照基线，不改。
+- 采纳时的复算与门禁数字精确一致（容差 1e-6），否则脚本会拒绝写入。
 
-若决定采纳，需要：把 `resid_vol7_qmin0.65_k0.20` 写入 `results/Q2/opt/selected_config.json` 口径、
-用暂存工作簿替换 `results/Q2/result2.xlsx`、把冻结数字改为 13697499.17，
-并在 `planning/Q2_notes.md` 的改口表登记原因，同时同步 `paper/sections/q2.tex` 引用的数字。
+**冻结数字：13697499.17 元**（计划项 13225318.00，紧急费 472181.17 / 79889.74 kWh / 138 天）。
+核验：334 天、0 校验错误（日前计划与实际回放都过）、0 同时充放、SOC 全程 \([1200,10800]\)、
+三个工作表表头与 `data_raw/Q2/result2_template.xlsx` 逐格一致。
+
+**论文写作必须带上的三句话**：(1) 原定的单窗 argmax 选参协议失败，样本外多花 77674.67 元；
+(2) 过关的嵌套协议是在看过样本外表之后写的，切分稳健性为 9/12，等权期望收益 +35721 元；
+(3) 紧急外购天数由 120 天升到 138 天，这是换取 0.49% 费用下降的代价。
+把这三点写成敏感性/局限性讨论，比藏起来更能拿分。
 
 ## 7. 与事后最优上界的对比
 
