@@ -1,0 +1,50 @@
+{
+  "M1": {
+    "n_days": 14,
+    "total_cost": 642805.0896337603,
+    "plan_only_cost": 603518.2402174121,
+    "emergency_cost": 24346.83573442432,
+    "emergency_kwh": 4677.606497199985,
+    "adj_purchase_kwh": 985694.21754649,
+    "n_days_with_intraday_adjust": 14,
+    "elapsed_s": 12.58943680000084,
+    "leakage_errors": [],
+    "gate_errors": []
+  },
+  "TV": {
+    "n_days": 14,
+    "total_cost": 642193.9475804652,
+    "plan_only_cost": 603264.8350806672,
+    "emergency_cost": 23837.37211100007,
+    "emergency_kwh": 4436.372377599986,
+    "adj_purchase_kwh": 985826.47205009,
+    "n_days_with_intraday_adjust": 14,
+    "elapsed_s": 13.579550800001016,
+    "leakage_errors": [],
+    "gate_errors": []
+  },
+  "LA": {
+    "n_days": 14,
+    "total_cost": 639905.8304136989,
+    "plan_only_cost": 603202.1942795682,
+    "emergency_cost": 21340.236573702787,
+    "emergency_kwh": 3924.4739444999855,
+    "adj_purchase_kwh": 986246.2452000901,
+    "n_days_with_intraday_adjust": 14,
+    "elapsed_s": 22.86140950000845,
+    "leakage_errors": [],
+    "gate_errors": []
+  },
+  "M2": {
+    "n_days": 14,
+    "total_cost": 652495.8987017213,
+    "plan_only_cost": 572445.3908405812,
+    "emergency_cost": 19387.900283794388,
+    "emergency_kwh": 3535.040563099988,
+    "adj_purchase_kwh": 987456.8705339901,
+    "n_days_with_intraday_adjust": 14,
+    "elapsed_s": 24.875429599997005,
+    "leakage_errors": [],
+    "gate_errors": []
+  }
+}
