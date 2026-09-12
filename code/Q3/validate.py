@@ -8,7 +8,7 @@ import pandas as pd
 from config import (
     ABS_TOL_KWH,
     DT_HOURS,
-    E0_JAN1_KWH,
+    E0_FEB1_KWH,
     E_MAX_KWH,
     E_MIN_KWH,
     ISSUE_HOURS,
@@ -157,9 +157,9 @@ def official_errors(official: list[dict], dates, soc_track: dict, load_kwh, pv_k
         bill = rec["bill"]
         if abs(rebuilt["total_cost"] - bill["total_cost"]) > _tol(max(bill["total_cost"], 1.0)):
             errors.append(f"{rec['date']} independent cost mismatch")
-        if rec["day"] == 0:
-            if abs(rec["actual"]["soc0_kwh"] - E0_JAN1_KWH) > ABS_TOL_KWH:
-                errors.append("Jan 1 SOC0 != 6000")
+        if pd.Timestamp(rec["date"]).normalize() == pd.Timestamp(OFFICIAL_START):
+            if abs(rec["actual"]["soc0_kwh"] - E0_FEB1_KWH) > ABS_TOL_KWH:
+                errors.append("Feb 1 SOC0 != 6000")
         if rec["actual"]["soc0_kwh"] < E_MIN_KWH - ABS_TOL_KWH or rec["actual"]["soc0_kwh"] > E_MAX_KWH + ABS_TOL_KWH:
             errors.append(f"{rec['date']} SOC0 out of bounds")
     for prev, cur in zip(official, official[1:]):

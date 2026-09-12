@@ -30,7 +30,7 @@ from config import (
     ABS_TOL_KWH,
     BETA_LOCK_GRID,
     BETA_OPEN_GRID,
-    E0_JAN1_KWH,
+    E0_FEB1_KWH,
     E_MAX_KWH,
     E_MIN_KWH,
     PV_P0_MODE,
@@ -162,10 +162,10 @@ def run_policy_q43(
         return causal_sigma(interp, aligned, day)
 
     records = []
-    soc = float(E0_JAN1_KWH)
-    soc_track = {0: soc}
+    soc = float(E0_FEB1_KWH)
+    soc_track = {start_day: soc}
     t0 = time.perf_counter()
-    for day in range(0, end_day):
+    for day in range(start_day, end_day):
         plan_price = actual[day] if plan_source == "oracle" else hat0[day]
         if plan_source not in {"hat0", "oracle"}:
             raise ValueError(f"unknown plan_source {plan_source}")
@@ -218,6 +218,12 @@ def run_policy_q43(
         soc0 = rec["actual"]["soc0_kwh"]
         if soc0 < E_MIN_KWH - ABS_TOL_KWH or soc0 > E_MAX_KWH + ABS_TOL_KWH:
             gate.append(f"{rec['date']} SOC0 out of bounds")
+    if official:
+        first = official[0]
+        if pd.Timestamp(first["date"]).normalize() != pd.Timestamp(OFFICIAL_START):
+            gate.append(f"official window must start on {OFFICIAL_START}, got {first['date']}")
+        if abs(first["actual"]["soc0_kwh"] - E0_FEB1_KWH) > ABS_TOL_KWH:
+            gate.append(f"Feb 1 SOC0 != {E0_FEB1_KWH}")
     for prev, cur in zip(official, official[1:]):
         if abs(prev["soc24_kwh"] - cur["actual"]["soc0_kwh"]) > ABS_TOL_KWH:
             gate.append(f"{cur['date']} SOC0 != previous 24:00")

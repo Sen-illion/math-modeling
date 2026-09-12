@@ -26,6 +26,7 @@ from config import (
     ATTACHMENT2_XLSX,
     ATTACHMENT3_XLSX,
     CLEAN_DIR,
+    E0_FEB1_KWH,
     EXP_DIR,
     LOG_DIR,
     OFFICIAL_END,
@@ -160,7 +161,7 @@ def run_phase(
             payload = run_span(
                 start_day,
                 end_day,
-                0,
+                start_day,
                 price144,
                 load_kwh,
                 pv_kwh,
@@ -175,7 +176,7 @@ def run_phase(
             payload = run_span(
                 start_day,
                 end_day,
-                0,
+                start_day,
                 price144,
                 load_kwh,
                 pv_kwh,
@@ -215,12 +216,11 @@ def run_phase(
             json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
         )
         if name in ("M0", "M0L", "N0", "M1", "LA"):
-            jan1 = payload["records"][0]
-            if abs(jan1["actual"]["soc0_kwh"] - 6000.0) > 1e-3:
-                raise RuntimeError("Jan 1 0:00 SOC != 6000")
-            if start_day > 0:
-                if abs(payload["records"][start_day - 1]["soc24_kwh"] - payload["official"][0]["actual"]["soc0_kwh"]) > 1e-3:
-                    raise RuntimeError("Feb 1 SOC0 != Jan 31 SOC24")
+            first = payload["official"][0]
+            if pd.Timestamp(first["date"]).normalize() != pd.Timestamp(OFFICIAL_START):
+                raise RuntimeError(f"official window must start on {OFFICIAL_START}, got {first['date']}")
+            if abs(first["actual"]["soc0_kwh"] - E0_FEB1_KWH) > 1e-3:
+                raise RuntimeError("Feb 1 0:00 SOC != 6000")
         if name == "N0" and summary["n_days_with_intraday_adjust"] != 0:
             raise RuntimeError("N0 must keep the 0:00 contract all day")
         if leak:
@@ -236,12 +236,6 @@ def run_phase(
         candidates = [n for n in names if n != "oracle"]
         winner = min(candidates, key=lambda n: metrics[n]["total_cost"])
         metrics["official_winner"] = winner
-        jan31 = start_day - 1
-        if jan31 >= 0:
-            soc_feb1 = payloads[winner]["soc_track"][start_day]
-            last_warm = payloads[winner]["records"][jan31]
-            if abs(last_warm["soc24_kwh"] - soc_feb1) > 1e-6:
-                raise RuntimeError("Feb 1 SOC0 != Jan 31 SOC24")
         if export:
             winner_cost = metrics[winner]["total_cost"]
             metrics["previous_endpoint_m1_cost"] = PREVIOUS_OFFICIAL_M1_COST

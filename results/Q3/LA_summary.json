@@ -1,17 +1,17 @@
 {
   "n_days": 334,
-  "total_cost": 13274667.53537518,
-  "plan_only_cost": 12335982.088427277,
+  "total_cost": 13275795.851911014,
+  "plan_only_cost": 12337110.404963112,
   "emergency_cost": 342008.68305058894,
   "emergency_kwh": 58355.20229992268,
-  "adj_purchase_kwh": 20522828.96398395,
+  "adj_purchase_kwh": 20525470.48784395,
   "n_days_with_intraday_adjust": 334,
   "delta_plus_kwh": 669935.588602057,
   "delta_minus_kwh": 503615.49494364,
   "soc24_median": 8462.097197055555,
   "soc24_at_min_days": 1,
   "emergency_share_20h": 0.47728389942082533,
-  "elapsed_s": 217.07602199999383,
+  "elapsed_s": 236.56896900001448,
   "leakage_errors": [],
   "gate_errors": []
 }

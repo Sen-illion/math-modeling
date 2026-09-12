@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from config import (
     ABS_TOL_KWH,
+    E0_FEB1_KWH,
     E_MAX_KWH,
     E_MIN_KWH,
     ETA_CHARGE,
@@ -191,6 +192,8 @@ def check(path: Path, metrics_path: Path) -> list[str]:
     for a, b in zip(p_dates, p_dates[1:]):
         if abs(soc24[a] - soc0[b]) > 1e-3:
             errors.append(f"SOC discontinuous {a}->{b}: {soc24[a]} vs {soc0[b]}")
+    if p_dates and p_dates[0] in soc0 and abs(soc0[p_dates[0]] - E0_FEB1_KWH) > 1e-3:
+        errors.append(f"Feb 1 0:00 SOC must be {E0_FEB1_KWH}, got {soc0[p_dates[0]]}")
 
     return errors
 

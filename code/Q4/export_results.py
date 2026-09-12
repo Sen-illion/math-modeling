@@ -240,8 +240,11 @@ def export_result4_3(official: list[dict], end_min: np.ndarray, dest: Path | Non
             cd_ws.cell(row, 3).value = charge_blocks[label]
             cd_ws.cell(row, 4).value = discharge_blocks[label]
             if b == 0:
+                soc0 = float(rec["actual"]["soc0_kwh"])
+                if rec is official[0] and abs(soc0 - E0_FEB1_KWH) > 1e-6:
+                    raise ValueError(f"Feb 1 00:00 SOC must be {E0_FEB1_KWH}, got {soc0}")
                 cd_ws.cell(row, 5).value = "0:00"
-                cd_ws.cell(row, 6).value = float(rec["actual"]["soc0_kwh"])
+                cd_ws.cell(row, 6).value = soc0
             elif b == 1:
                 cd_ws.cell(row, 5).value = "24:00"
                 cd_ws.cell(row, 6).value = float(rec["actual"]["soc24_kwh"])

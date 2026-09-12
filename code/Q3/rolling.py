@@ -12,6 +12,7 @@ from config import (
     BETA_LOCK,
     BETA_OPEN,
     DT_HOURS,
+    E0_FEB1_KWH,
     E0_JAN1_KWH,
     E_MAX_KWH,
     E_MIN_KWH,
@@ -433,7 +434,7 @@ def run_span(
 ) -> dict:
     n_days = end_day - start_day
     days = list(range(warmup_start, end_day))
-    soc = E0_JAN1_KWH
+    soc = E0_JAN1_KWH if warmup_start == 0 else E0_FEB1_KWH
 
     records = []
     soc_track = {warmup_start: soc}
