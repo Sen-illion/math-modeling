@@ -1,0 +1,38 @@
+{
+  "policy": "E_pv7d_netrho",
+  "margin": "netrho",
+  "plan_source": "oracle",
+  "plan_price": "attachment4_oracle_diagnostic",
+  "diagnostic_only": true,
+  "settle_price": "attachment4_actual",
+  "n_official_days": 334,
+  "total_cost": 14330963.309692051,
+  "plan_cost": 13778350.44884644,
+  "emergency_cost": 552612.8608456095,
+  "emergency_kwh": 91279.5364219415,
+  "purchase_kwh": 21569945.707385585,
+  "feb1_soc0": 6000.0,
+  "elapsed_s": 154.64624290000938,
+  "forecast_s": 132.20749620000424,
+  "n_validation_errors": 0,
+  "validation_errors_head": [],
+  "price_leakage": [],
+  "n_price_leakage": 0,
+  "end_date": "2025-12-31",
+  "price_source": "D:\\Code\\Math\\26c\\integrate-q123\\problem_files\\附件\\附件4.xlsx",
+  "adaptive_rule": {
+    "mode": "net_rho",
+    "alpha": 0.8,
+    "rho": 0.625,
+    "terminal_soc": 2400.0,
+    "label": "E_pv7d_netrho"
+  },
+  "q_min": 0.8,
+  "k": 0.625,
+  "net_alpha": 0.8,
+  "rho": 0.625,
+  "terminal_soc": 2400.0,
+  "q_counts": {
+    "0.8": 334
+  }
+}

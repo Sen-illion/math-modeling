@@ -1,0 +1,41 @@
+{
+  "source": "D:\\Code\\Math\\26c\\integrate-q123\\problem_files\\附件\\附件4.xlsx",
+  "alignment": "stitch_year_calendar_00_24",
+  "n_days": 365,
+  "n_slots_per_day": 144,
+  "font": "SimSun",
+  "figures": {
+    "q4_price_intraday_pattern": {
+      "claim": "附件4电价具有稳定的日内形态，同时存在跨日波动。",
+      "median_daily_correlation_with_mean_curve": 0.9755688779310495
+    },
+    "q4_price_weekday_effect": {
+      "claim": "相同日内时刻的价格随星期日期呈系统性偏差。",
+      "weekday_daily_mean_yuan_per_kwh": [
+        0.8191345619658119,
+        0.8211208333333332,
+        0.8237283149895178,
+        0.8211194577991453,
+        0.6289843349358973,
+        0.6290309428418804,
+        0.8191538327991454
+      ],
+      "max_abs_weekday_slot_deviation_yuan_per_kwh": 0.25918055321390954
+    },
+    "q4_price_recent_level": {
+      "claim": "日均价格水平随日期变化，近7日均值可表征近期水平。",
+      "daily_mean_lag7_correlation": 0.9628793142969733
+    }
+  },
+  "outputs": [
+    "D:\\Code\\Math\\26c\\integrate-q123\\paper\\figures\\q4_price_intraday_pattern.png",
+    "D:\\Code\\Math\\26c\\integrate-q123\\paper\\figures\\q4_price_intraday_pattern.pdf",
+    "D:\\Code\\Math\\26c\\integrate-q123\\paper\\figures\\q4_price_intraday_pattern.svg",
+    "D:\\Code\\Math\\26c\\integrate-q123\\paper\\figures\\q4_price_weekday_effect.png",
+    "D:\\Code\\Math\\26c\\integrate-q123\\paper\\figures\\q4_price_weekday_effect.pdf",
+    "D:\\Code\\Math\\26c\\integrate-q123\\paper\\figures\\q4_price_weekday_effect.svg",
+    "D:\\Code\\Math\\26c\\integrate-q123\\paper\\figures\\q4_price_recent_level.png",
+    "D:\\Code\\Math\\26c\\integrate-q123\\paper\\figures\\q4_price_recent_level.pdf",
+    "D:\\Code\\Math\\26c\\integrate-q123\\paper\\figures\\q4_price_recent_level.svg"
+  ]
+}

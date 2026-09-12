@@ -1,0 +1,51 @@
+{
+  "source": {
+    "official_metrics": "results/Q4/metrics.json",
+    "q42_daily": "results/Q4/q42_daily.csv",
+    "q43_daily": [
+      "results/Q4/q43_N0_daily.csv",
+      "results/Q4/q43_LA_daily.csv",
+      "results/Q4/q43_M0L_daily.csv"
+    ],
+    "oracle": [
+      "results/Q4/diagnostics/oracle_current_q42/q42_netrho_summary.json",
+      "results/Q4/diagnostics/oracle_current_q43/q43_LA_summary.json"
+    ]
+  },
+  "figures": {
+    "official_dispatch": [
+      "paper\\figures\\q4_official_dispatch_details.png",
+      "paper\\figures\\q4_official_dispatch_details.pdf",
+      "paper\\figures\\q4_official_dispatch_details.svg"
+    ],
+    "cost_structure": [
+      "paper\\figures\\q4_cost_structure.png",
+      "paper\\figures\\q4_cost_structure.pdf",
+      "paper\\figures\\q4_cost_structure.svg"
+    ],
+    "daily_distribution": [
+      "paper\\figures\\q4_daily_cost_distribution.png",
+      "paper\\figures\\q4_daily_cost_distribution.pdf",
+      "paper\\figures\\q4_daily_cost_distribution.svg"
+    ],
+    "error_decomposition": [
+      "paper\\figures\\q4_error_decomposition.png",
+      "paper\\figures\\q4_error_decomposition.pdf",
+      "paper\\figures\\q4_error_decomposition.svg"
+    ]
+  },
+  "oracle_rows": [
+    {
+      "name": "Q4-2  净负载分位—回放策略",
+      "base": 13695403.60698269,
+      "oracle": 14330963.309692051,
+      "actual": 14413479.019326326
+    },
+    {
+      "name": "Q4-3  日内滚动策略 LA",
+      "base": 13275795.851911014,
+      "oracle": 13907935.202101493,
+      "actual": 14001199.256629871
+    }
+  ]
+}

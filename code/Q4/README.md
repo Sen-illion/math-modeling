@@ -1,24 +1,24 @@
 # Q4
 
-用冻结的 0:00 三层 expanding 电价 \(\hat p_0\) 重算问题 2 / 问题 3。决策用 \(\hat p_0\)，结算用附件 4 真值。6/12/18 只更新光伏/负荷，不改电价。
+问题四使用当天 0:00 的三层扩展窗电价预测
+\(\hat p_0=b+\Delta_{\mathrm{week}}+\Delta_{\mathrm{recent}}\) 进行决策，使用附件 4
+真实电价结算。Q4-3 的 6:00、12:00 和 18:00 更新只改变负荷与光伏信息，不改变当天
+0:00 已锁定的预测电价。
 
-正式方案（附件 4 世界上已对齐并经过缓冲档嵌套门禁）：
+当前正式方案：
 
-- Q4-2：`D_pv7d_adaptive`（`resid_vol7`，\(q_{\min}=0.65\)，\(k=0.20\)），**14,411,957.36** 元。
-- Q4-3：`LA`（\(\beta=1.0/0.2\)），日内电价锁当天 \(\hat p_0\)，**14,217,728.67** 元。
+- Q4-2：`E_pv7d_netrho`，净负荷分位 \(\alpha=0.8\)，回放系数 \(\rho=0.625\)，计划日末 SOC 目标 \(S^*=2400\) kWh；全年 14,413,479.02 元。
+- Q4-3：`LA`，48 h 展望，已锁定段 \(q_L=0.60\)，开放段与次日段 \(q=0.50\)，光伏插值使用最近已完成时段实测值；全年 14,001,199.26 元。
+- 两类正式回放均从 2025-02-01 的 6000 kWh SOC 开始，覆盖 334 天。
 
-方法记录见 `planning/Q4_notes.md`。数字以 `results/Q4/metrics.json` 为准。
+关键文件：
 
-- `price_structured.py`：\(\hat p_0=b+\Delta_{\mathrm{week}}+\Delta_{\mathrm{recent}}\)。
-- `run_q4_2.py`：固定裕度 `C_pv7d_q82` 或 `--margin adaptive`。
-- `run_q4_3.py`：默认 `LA`；可用 `--beta-lock` / `--beta-open` 覆盖缓冲，不改 Q3 默认值。
-- `run_q4_align.py`：对齐当前 Q2/Q3 正式策略，仅当更省时替换 `result4-x`。
-- `sweep_q4_buffers.py`：在附件 4 世界上重选 \(q_{\min},k\) 与 LA \(\beta\)；tune 与 OOS 都更省才晋升。
+- `price_structured.py`：因果电价预测及逐日残差更新。
+- `run_q4_2.py`：Q4-2 固定分位、自适应分位和净负载回放策略。
+- `run_q4_3.py`：Q4-3 日内滚动策略及附件 4 结算。
+- `run_q4_align_official.py`：与当前 Q2/Q3 正式方法对齐的诊断。
+- `sweep_q4_buffers.py`：缓冲参数诊断，不作为当前正式结果的默认入口。
 
-不要覆盖 `results/Q2/result2.xlsx` 或 `results/Q3/result3.xlsx`。
-
-```
-python code/Q4/run_q4_align.py
-python code/Q4/sweep_q4_buffers.py
-python code/Q4/diagnose_oracle_price.py
-```
+正式数字以 `results/Q4/metrics.json`、`run_manifest.json`、`q42_summary.json` 和
+`q43_metrics.json` 为准。任何诊断不得覆盖 `results/Q2/result2.xlsx`、
+`results/Q3/result3.xlsx`、`results/Q4/result4-2.xlsx` 或 `result4-3.xlsx`。
