@@ -149,24 +149,68 @@ def slot_quantile(residuals: list[np.ndarray], q) -> np.ndarray:
     return np.array([np.quantile(stacked[:, s], q[s]) for s in range(stacked.shape[1])])
 
 
-def bias_bank(point: list[dict], year: dict, q_load, q_pv) -> list[dict]:
+def season_id(stamp) -> int:
+    """Meteorological season: 0=DJF, 1=MAM, 2=JJA, 3=SON."""
+    month = int(pd.Timestamp(stamp).month)
+    if month in (12, 1, 2):
+        return 0
+    if month in (3, 4, 5):
+        return 1
+    if month in (6, 7, 8):
+        return 2
+    return 3
+
+
+def _pool_arrays(
+    history: list[tuple[int, np.ndarray]],
+    day: int,
+    dates: pd.Series,
+    pool: dict | None,
+) -> list[np.ndarray]:
+    """Causal residual subset for day D. Default is expanding (all days < D)."""
+    if not history:
+        return []
+    spec = pool or {"mode": "expanding"}
+    mode = spec.get("mode", "expanding")
+    if mode == "expanding":
+        picked = history
+    elif mode == "rolling":
+        picked = history[-int(spec["window"]) :]
+    elif mode == "season":
+        want = season_id(dates.iloc[day])
+        picked = [(d, arr) for d, arr in history if season_id(dates.iloc[d]) == want]
+    elif mode == "month":
+        month = int(pd.Timestamp(dates.iloc[day]).month)
+        picked = [(d, arr) for d, arr in history if int(pd.Timestamp(dates.iloc[d]).month) == month]
+        if len(picked) < int(spec.get("min_days", 14)):
+            picked = history
+    else:
+        raise ValueError(f"unknown residual pool mode {mode}")
+    return [arr for _, arr in picked]
+
+
+def bias_bank(point: list[dict], year: dict, q_load, q_pv, pool: dict | None = None) -> list[dict]:
     """Shift point forecasts by causal residual quantiles. Residuals use days < D only."""
-    load_resid: list[np.ndarray] = []
-    pv_resid: list[np.ndarray] = []
+    dates = year["dates"]
+    load_hist: list[tuple[int, np.ndarray]] = []
+    pv_hist: list[tuple[int, np.ndarray]] = []
     out = []
     for pred in point:
         day = int(pred["day"])
         load_plan = np.asarray(pred["load_kw"], dtype=float).copy()
         pv_plan = np.asarray(pred["pv_kw"], dtype=float).copy()
-        if q_load is not None and load_resid:
-            load_plan = load_plan + slot_quantile(load_resid, q_load)
-        if q_pv is not None and pv_resid:
-            pv_plan = pv_plan + slot_quantile(pv_resid, q_pv)
-        load_resid.append(year["load_kw"][day] - pred["load_kw"])
-        pv_resid.append(year["pv_kw"][day] - pred["pv_kw"])
+        load_pool = _pool_arrays(load_hist, day, dates, pool)
+        pv_pool = _pool_arrays(pv_hist, day, dates, pool)
+        if q_load is not None and load_pool:
+            load_plan = load_plan + slot_quantile(load_pool, q_load)
+        if q_pv is not None and pv_pool:
+            pv_plan = pv_plan + slot_quantile(pv_pool, q_pv)
+        load_hist.append((day, year["load_kw"][day] - pred["load_kw"]))
+        pv_hist.append((day, year["pv_kw"][day] - pred["pv_kw"]))
         row = dict(pred)
         row["load_kw"] = clip_nonneg(load_plan)
         row["pv_kw"] = clip_nonneg(apply_pv_night_zero(pv_plan, year["pv_kw"][:day]))
+        row["resid_pool_n"] = int(len(load_pool))
         out.append(row)
     return out
 
@@ -185,8 +229,12 @@ def mix_point(point: list[dict], lam: float) -> list[dict]:
     return out
 
 
-def bias_net_bank(point: list[dict], year: dict, alpha: float) -> list[dict]:
-    """Conservative net-load quantile: one residual on (L-P), not split load/PV."""
+def bias_net_bank(point: list[dict], year: dict, alpha: float, window: int | None = None) -> list[dict]:
+    """Conservative net-load quantile: one residual on (L-P), not split load/PV.
+
+    window=None uses all completed days (expanding). A positive window keeps only the
+    last `window` completed residuals, matching the other paper's W=7 net quantile.
+    """
     net_resid: list[np.ndarray] = []
     out = []
     for pred in point:
@@ -196,7 +244,8 @@ def bias_net_bank(point: list[dict], year: dict, alpha: float) -> list[dict]:
         net_hat = load_hat - pv_hat
         net_plan = net_hat.copy()
         if net_resid:
-            net_plan = net_hat + slot_quantile(net_resid, alpha)
+            pool = net_resid[-int(window) :] if window else net_resid
+            net_plan = net_hat + slot_quantile(pool, alpha)
         pv_plan = clip_nonneg(apply_pv_night_zero(pv_hat.copy(), year["pv_kw"][:day]))
         load_plan = clip_nonneg(pv_plan + net_plan)
         net_resid.append((year["load_kw"][day] - year["pv_kw"][day]) - net_hat)
@@ -205,13 +254,16 @@ def bias_net_bank(point: list[dict], year: dict, alpha: float) -> list[dict]:
         row["pv_kw"] = pv_plan
         row["risk"] = "net"
         row["alpha"] = float(alpha)
+        row["resid_window"] = None if window is None else int(window)
         out.append(row)
     return out
 
 
-def ladder_banks(point: list[dict], year: dict, ladder) -> dict[float, list[dict]]:
+def ladder_banks(point: list[dict], year: dict, ladder, pool: dict | None = None) -> dict[float, list[dict]]:
     """One biased bank per rung, keyed by q_load. q_pv mirrors it as 1 - q_load."""
-    return {float(q): bias_bank(point, year, float(q), round(1.0 - float(q), 6)) for q in ladder}
+    return {
+        float(q): bias_bank(point, year, float(q), round(1.0 - float(q), 6), pool=pool) for q in ladder
+    }
 
 
 def point_residual_history(point: list[dict], year: dict) -> dict[int, dict]:

@@ -36,6 +36,8 @@ from bank import (  # noqa: E402
 from config import (  # noqa: E402
     ADAPTIVE_DIR,
     ETA_DISCHARGE,
+    FROZEN_ADAPTIVE_FULL_YEAR_COST,
+    FROZEN_C_Q82_FULL_YEAR_COST,
     FROZEN_OFFICIAL_FULL_YEAR_COST,
     GRAFT_DIR,
     OFFICIAL_END,
@@ -207,8 +209,8 @@ def phase1(prices, year, point, rule: dict) -> tuple[pd.DataFrame, dict]:
         )
 
     g0 = summaries["G0"]["windows"]["full"]["total_cost"]
-    if abs(g0 - FROZEN_OFFICIAL_FULL_YEAR_COST) > 1e-6:
-        raise RuntimeError(f"G0 {g0} != official {FROZEN_OFFICIAL_FULL_YEAR_COST}")
+    if abs(g0 - FROZEN_ADAPTIVE_FULL_YEAR_COST) > 1e-6:
+        raise RuntimeError(f"G0 {g0} != archived adaptive {FROZEN_ADAPTIVE_FULL_YEAR_COST}")
 
     frame = pd.DataFrame(rows)
     frame.to_csv(GRAFT_DIR / "phase1_comparison.csv", index=False, encoding="utf-8-sig")
@@ -343,7 +345,7 @@ def write_summary(frame: pd.DataFrame, summaries: dict, winners: list[str], gate
         "",
         "## 第 1 步：单因子",
         "",
-        f"G0 全年费用 {g0:.10f}，与冻结值差 {g0 - FROZEN_OFFICIAL_FULL_YEAR_COST}（须为 0）。",
+        f"G0 全年费用 {g0:.10f}，与已废弃自适应差 {g0 - FROZEN_ADAPTIVE_FULL_YEAR_COST}（须为 0）。",
         "",
         "| id | λ | 风险 | 自适应 | 负荷MAE | 调参窗 | 样本外 | 全年 | 全年相对正式 | 样本外紧急天数 |",
         "|---|---:|---|---|---:|---:|---:|---:|---:|---:|",

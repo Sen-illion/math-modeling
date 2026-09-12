@@ -40,12 +40,17 @@ TUNE_SELECT_START = "2025-05-01"
 Q_LADDER = (0.6, 0.7, 0.8, 0.85, 0.9)
 Q_WARMUP = 0.8
 ADAPTIVE_WARMUP_DAYS = 7
-# Superseded fixed-margin baseline C_pv7d_q82, kept as the comparison the adaptive gate
-# must beat (results/Q2/opt/full_year_summary_C_pv7d_q82.json).
+# Superseded fixed-margin baseline C_pv7d_q82.
 FROZEN_C_Q82_FULL_YEAR_COST = 13765167.58173598
-# Official frozen total after adopting the adaptive margin, policy D_pv7d_adaptive
-# (results/Q2/opt/full_year_summary.json, results/Q2/result2.xlsx).
-FROZEN_OFFICIAL_FULL_YEAR_COST = 13697499.169779435
+# Discarded peeked adaptive D_pv7d_adaptive (nested rule saw Jul-Dec).
+FROZEN_ADAPTIVE_FULL_YEAR_COST = 13697499.169779435
+# Official frozen total: E_pv7d_netrho (net alpha=0.8, rho=0.625, S*=2400).
+# Evidence: results/Q2/rho_graft/; freeze files in results/Q2/opt/ and result2.xlsx.
+FROZEN_OFFICIAL_FULL_YEAR_COST = 13695403.60698269
+OFFICIAL_POLICY = "E_pv7d_netrho"
+OFFICIAL_NET_ALPHA = 0.8
+OFFICIAL_RHO = 0.625
+OFFICIAL_TERMINAL_SOC = 2400.0
 
 # Official Q2 V1 keeps no end-of-day SOC value in the day-ahead LP.
 TERMINAL_TARGET_KWH = 6000.0
@@ -105,6 +110,9 @@ FULL_DIR = RESULT_DIR / "full_year"
 OPT_DIR = RESULT_DIR / "opt"
 ADAPTIVE_DIR = RESULT_DIR / "adaptive"
 GRAFT_DIR = RESULT_DIR / "graft"
+RHO_GRAFT_DIR = RESULT_DIR / "rho_graft"
+RESID_WINDOW_DIR = RESULT_DIR / "resid_window"
+WALKFORWARD_DIR = RESULT_DIR / "walkforward"
 DIAG_DIR = RESULT_DIR / "diagnostics"
 LOG_DIR = RESULT_DIR / "logs"
 FORECAST_BANK_NPZ = CLEAN_DIR / "forecast_bank.npz"

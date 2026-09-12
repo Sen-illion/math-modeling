@@ -35,6 +35,7 @@ def solve_day_lp(
     soc0: float,
     terminal_mode: str = "none",
     soc_mu: float = 0.0,
+    terminal_soc: float | None = None,
 ) -> dict:
     n = N_INTERVALS
     if len(price) != n or len(load_kwh) != n or len(pv_kwh) != n:
@@ -53,6 +54,8 @@ def solve_day_lp(
     obj = pulp.lpSum(price[t] * g[t] + eps * (c[t] + d[t]) for t in range(n))
     if soc_mu:
         obj -= float(soc_mu) * e[n - 1]
+    if terminal_soc is not None and terminal_mode != "none":
+        raise ValueError("terminal_soc cannot combine with terminal_mode")
     if terminal_mode == "track6000":
         surplus = pulp.LpVariable("term_pos", lowBound=0)
         shortage = pulp.LpVariable("term_neg", lowBound=0)
@@ -67,6 +70,11 @@ def solve_day_lp(
         prob += e[t] == prev + ETA_CHARGE * c[t] - d[t] / ETA_DISCHARGE
     if terminal_mode == "track6000":
         prob += e[n - 1] - TERMINAL_TARGET_KWH == surplus - shortage
+    if terminal_soc is not None:
+        target = float(terminal_soc)
+        if target < E_MIN_KWH - ABS_TOL_KWH or target > E_MAX_KWH + ABS_TOL_KWH:
+            raise ValueError(f"terminal_soc {target} outside [{E_MIN_KWH}, {E_MAX_KWH}]")
+        prob += e[n - 1] == target
 
     status = prob.solve(pulp.PULP_CBC_CMD(msg=False, timeLimit=SOLVER_TIME_LIMIT_S))
     status_name = pulp.LpStatus[status]
@@ -89,9 +97,10 @@ def solve_day_lp(
         "soc0_kwh": float(soc0),
         "plan_cost": float(np.dot(price, purchase)),
         "n_simultaneous": simultaneous,
-        "terminal_mode": terminal_mode,
+        "terminal_mode": terminal_mode if terminal_soc is None else "hard",
         "soc_mu": float(soc_mu),
-        "terminal_abs_dev": abs(float(soc[-1]) - TERMINAL_TARGET_KWH),
+        "terminal_soc": None if terminal_soc is None else float(terminal_soc),
+        "terminal_abs_dev": abs(float(soc[-1]) - (float(terminal_soc) if terminal_soc is not None else TERMINAL_TARGET_KWH)),
     }
 
 

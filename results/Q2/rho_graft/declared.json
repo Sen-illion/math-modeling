@@ -1,0 +1,110 @@
+{
+  "keep": [
+    "start-aligned clock",
+    "XGB-Expanding load",
+    "7-day same-slot PV",
+    "locked G",
+    "5x emergency",
+    "Feb 1 SOC=6000"
+  ],
+  "graft": [
+    "net-load quantile",
+    "hard terminal SOC",
+    "rho SOC tracking",
+    "W=7 residual window"
+  ],
+  "january_grid": {
+    "alpha": [
+      0.8,
+      0.825
+    ],
+    "rho": [
+      0.5,
+      0.625
+    ],
+    "terminal": [
+      2400.0,
+      3600.0,
+      4800.0,
+      6000.0
+    ],
+    "score": "Jan 15-31 cash plus (SOC0-SOC24)*min(pi)/eta, start SOC=6000, no Jan 1-14 warmup"
+  },
+  "annual": [
+    {
+      "id": "R0",
+      "risk": "split",
+      "alpha": 0.8,
+      "rho": 0.0,
+      "terminal": null,
+      "window": null,
+      "note": "current fixed split 0.8, greedy, free terminal"
+    },
+    {
+      "id": "R1",
+      "risk": "net",
+      "alpha": 0.8,
+      "rho": 0.0,
+      "terminal": null,
+      "window": null,
+      "note": "net alpha=0.8, greedy, free terminal (G4)"
+    },
+    {
+      "id": "R2",
+      "risk": "net",
+      "alpha": 0.8,
+      "rho": 0.0,
+      "terminal": 2400.0,
+      "window": null,
+      "note": "net 0.8 + hard S*=2400, greedy"
+    },
+    {
+      "id": "R3",
+      "risk": "net",
+      "alpha": 0.8,
+      "rho": 0.625,
+      "terminal": null,
+      "window": null,
+      "note": "net 0.8 + rho=0.625, free terminal"
+    },
+    {
+      "id": "R4",
+      "risk": "net",
+      "alpha": 0.8,
+      "rho": 0.625,
+      "terminal": 2400.0,
+      "window": null,
+      "note": "net 0.8 + rho=0.625 + S*=2400"
+    },
+    {
+      "id": "R5",
+      "risk": "net",
+      "alpha": 0.825,
+      "rho": 0.625,
+      "terminal": 2400.0,
+      "window": null,
+      "note": "their frozen (0.825, 0.625, 2400), expanding residual"
+    },
+    {
+      "id": "R6",
+      "risk": "net",
+      "alpha": 0.825,
+      "rho": 0.625,
+      "terminal": 2400.0,
+      "window": 7,
+      "note": "their frozen controls + W=7 residual"
+    },
+    {
+      "id": "R7",
+      "risk": "net",
+      "alpha": 0.8,
+      "rho": 0.0,
+      "terminal": null,
+      "window": 7,
+      "note": "net 0.8 greedy, W=7 residual only"
+    }
+  ],
+  "note": "Declared before replay. Does not overwrite result2.xlsx.",
+  "official_cost": 13697499.169779435,
+  "q82_cost": 13765167.58173598
+}

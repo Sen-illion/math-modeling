@@ -28,13 +28,19 @@ from config import (  # noqa: E402
     E_MIN_KWH,
     ETA_CHARGE,
     ETA_DISCHARGE,
+    FROZEN_ADAPTIVE_FULL_YEAR_COST,
     FROZEN_C_Q82_FULL_YEAR_COST,
+    FROZEN_OFFICIAL_FULL_YEAR_COST,
     FULL_DIR,
     MODEL_NAMES,
     MPC_STRIDE,
     MPC_STRIDE_FALLBACK,
     OFFICIAL_END,
+    OFFICIAL_NET_ALPHA,
+    OFFICIAL_POLICY,
+    OFFICIAL_RHO,
     OFFICIAL_START,
+    OFFICIAL_TERMINAL_SOC,
     OOS_START,
     OPT_DIR,
     P_MAX_KWH,
@@ -64,7 +70,13 @@ from adaptive import (  # noqa: E402
     run_fixed,
     summarise,
 )
-from bank import check_length, ladder_banks, load_point_bank, point_residual_history  # noqa: E402
+from bank import (  # noqa: E402
+    bias_net_bank,
+    check_length,
+    ladder_banks,
+    load_point_bank,
+    point_residual_history,
+)
 from forecast import apply_conservative_bias, precompute_panel, predict_day  # noqa: E402
 from leakage import run_leakage_suite  # noqa: E402
 from load_data import audit_data, load_prices, load_year_actuals, write_clean  # noqa: E402
@@ -827,6 +839,14 @@ def run_adaptive_full(args) -> None:
 
 
 def run_adopt_adaptive(args) -> None:
+    """Kept so old commands fail loudly. Official policy is now E_pv7d_netrho."""
+    raise SystemExit(
+        "D_pv7d_adaptive was discarded (peeked Jul-Dec). "
+        "Official policy is E_pv7d_netrho; use --adopt-netrho."
+    )
+
+
+def _run_adopt_adaptive_legacy(args) -> None:
     """Promote the gated adaptive rule to the official policy and re-export result2.
 
     The superseded fixed-0.8 summary and config are archived beside the new ones rather
@@ -920,6 +940,166 @@ def run_adopt_adaptive(args) -> None:
     print("NEW FROZEN total_cost =", repr(summary["total_cost"]), flush=True)
     print("superseded C_pv7d_q82 =", repr(FROZEN_C_Q82_FULL_YEAR_COST), flush=True)
     print("delta =", summary["total_cost"] - FROZEN_C_Q82_FULL_YEAR_COST, flush=True)
+
+
+def _netrho_summary(result: dict, point: list[dict], year: dict) -> dict:
+    daily = result["daily"]
+    start = pd.Timestamp(OFFICIAL_START)
+    stop = pd.Timestamp(OFFICIAL_END)
+    load_err = []
+    pv_err = []
+    for pred in point:
+        stamp = pd.Timestamp(pred["date"])
+        if stamp < start or stamp > stop:
+            continue
+        day = int(pred["day"])
+        load_err.append(np.asarray(pred["load_kw"], dtype=float) - year["load_kw"][day])
+        pv_err.append(np.asarray(pred["pv_kw"], dtype=float) - year["pv_kw"][day])
+    load_err = np.vstack(load_err) if load_err else np.zeros((0, 1))
+    pv_err = np.vstack(pv_err) if pv_err else np.zeros((0, 1))
+    return {
+        "model": "xgb_expanding",
+        "policy": OFFICIAL_POLICY,
+        "terminal_mode": "hard",
+        "terminal_soc": OFFICIAL_TERMINAL_SOC,
+        "soc_mu": 0.0,
+        "dispatch": "rho",
+        "rho": OFFICIAL_RHO,
+        "net_alpha": OFFICIAL_NET_ALPHA,
+        "mpc_stride": None,
+        "n_days_run": int(len(daily)),
+        "n_official_days": int(len(daily)),
+        "elapsed_s": result["elapsed_s"],
+        "load_mae_kw": float(np.mean(np.abs(load_err))),
+        "load_rmse_kw": float(np.sqrt(np.mean(load_err**2))),
+        "pv_mae_kw": float(np.mean(np.abs(pv_err))),
+        "pv_rmse_kw": float(np.sqrt(np.mean(pv_err**2))),
+        "purchase_kwh": float(daily["purchase_kwh"].sum()),
+        "plan_cost": float(daily["plan_cost"].sum()),
+        "emergency_kwh": float(daily["emergency_kwh"].sum()),
+        "emergency_slots": int(daily["emergency_slots"].sum()),
+        "emergency_days": int((daily["emergency_kwh"] > 1e-6).sum()),
+        "emergency_cost": float(daily["emergency_cost"].sum()),
+        "total_cost": float(daily["total_cost"].sum()),
+        "curtail_kwh": float(daily["curtail_kwh"].sum()),
+        "n_simultaneous_plan": int(daily["n_simultaneous_plan"].sum()),
+        "n_validation_errors": len(result["errors"]),
+        "validation_errors_head": result["errors"][:20],
+        "feb1_soc0": float(daily["soc0_actual"].iloc[0]),
+        "last_soc24_actual": float(daily["soc24_actual"].iloc[-1]),
+        "last_soc24_plan": float(daily["soc24_plan"].iloc[-1]),
+        "mean_soc24_actual": float(daily["soc24_actual"].mean()),
+        "mean_soc24_plan": float(daily["soc24_plan"].mean()),
+        "soc_min_actual": float(daily["soc_min_actual"].min()),
+        "soc_max_actual": float(daily["soc_max_actual"].max()),
+        "soc_init": "feb1_6000",
+        "terminal_lambda": 0.0,
+        "terminal_target_kwh": OFFICIAL_TERMINAL_SOC,
+        "margin_mode": "net_rho",
+        "pv_source": PV_SOURCE_V2,
+    }
+
+
+def _replay_official_netrho(prices, year, point, collect_traces: bool = False):
+    from rho_graft_q2 import run_controls
+
+    bank = bias_net_bank(point, year, OFFICIAL_NET_ALPHA)
+    result = run_controls(
+        prices,
+        year,
+        bank,
+        OFFICIAL_START,
+        OFFICIAL_END,
+        E0_FEB1_KWH,
+        OFFICIAL_RHO,
+        OFFICIAL_TERMINAL_SOC,
+        OFFICIAL_POLICY,
+        collect_traces=collect_traces,
+    )
+    if result["errors"]:
+        raise RuntimeError(f"{OFFICIAL_POLICY} validation: {result['errors'][:5]}")
+    summary = _netrho_summary(result, point, year)
+    return result, summary
+
+
+def run_adopt_netrho(args) -> None:
+    """Replace peeked adaptive with net-quantile + S*=2400 + rho tracking.
+
+    Selection is the January 15-31 16-grid on expanding residuals
+    (results/Q2/rho_graft/january_picks.json), not Jul-Dec. Archives D_pv7d_adaptive.
+    """
+    prices, year, point, _banks, _residuals = _adaptive_inputs(refresh=args.refresh_bank)
+    print("full-year replay for adoption:", OFFICIAL_POLICY, flush=True)
+    result, summary = _replay_official_netrho(prices, year, point, collect_traces=True)
+    if abs(summary["total_cost"] - FROZEN_OFFICIAL_FULL_YEAR_COST) > 1e-6:
+        raise RuntimeError(
+            f"adoption replay {summary['total_cost']} != declared {FROZEN_OFFICIAL_FULL_YEAR_COST}"
+        )
+
+    OPT_DIR.mkdir(parents=True, exist_ok=True)
+    archive = {
+        OPT_DIR / "full_year_summary.json": OPT_DIR / "full_year_summary_D_pv7d_adaptive.json",
+        OPT_DIR / "selected_config.json": OPT_DIR / "selected_config_D_pv7d_adaptive.json",
+    }
+    for live, kept in archive.items():
+        if live.exists() and not kept.exists():
+            kept.write_text(live.read_text(encoding="utf-8"), encoding="utf-8")
+            print("archived", live.name, "->", kept.name, flush=True)
+    if RESULT2_XLSX.exists() and not (RESULT_DIR / "result2_D_pv7d_adaptive.xlsx").exists():
+        shutil.copy2(RESULT2_XLSX, RESULT_DIR / "result2_D_pv7d_adaptive.xlsx")
+        print("archived result2.xlsx -> result2_D_pv7d_adaptive.xlsx", flush=True)
+
+    selected = {
+        "name": OFFICIAL_POLICY,
+        "pv_source": PV_SOURCE_V2,
+        "q_load": None,
+        "q_pv": None,
+        "soc_mu": 0.0,
+        "dispatch": "rho",
+        "mpc_stride": None,
+        "margin": {
+            "mode": "net_rho",
+            "risk": "net",
+            "alpha": OFFICIAL_NET_ALPHA,
+            "rho": OFFICIAL_RHO,
+            "terminal_soc": OFFICIAL_TERMINAL_SOC,
+            "resid_window": None,
+            "formula": "net-load quantile alpha=0.8; hard E_144=2400; reserve=1200+rho*(planSOC-1200)",
+        },
+        "supersedes": {
+            "name": "D_pv7d_adaptive",
+            "total_cost": FROZEN_ADAPTIVE_FULL_YEAR_COST,
+            "reason": "nested adaptive rule was written after seeing Jul-Dec",
+            "archive": "results/Q2/opt/full_year_summary_D_pv7d_adaptive.json",
+        },
+        "selection": {
+            "grid": "alpha in {0.8,0.825} x rho in {0.5,0.625} x S* in {2400,3600,4800,6000}",
+            "window": "2025-01-15..2025-01-31, start SOC=6000, inventory-adjusted cash",
+            "picked": "alpha=0.8, rho=0.625, S*=2400, expanding residual",
+            "alpha_theory": "newsvendor 5x emergency -> 0.8",
+        },
+        "evidence": "results/Q2/rho_graft/summary.md",
+        "note": (
+            "Official Q2 policy. Point forecast stays XGB-Expanding load + 7-day PV. "
+            "D_pv7d_adaptive is kept only as a discarded peeked comparison."
+        ),
+    }
+    (OPT_DIR / "selected_config.json").write_text(
+        json.dumps(selected, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    (OPT_DIR / "full_year_summary.json").write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    result["daily"].to_csv(OPT_DIR / f"daily_{OFFICIAL_POLICY}.csv", index=False, encoding="utf-8-sig")
+
+    dest = export_result2(prices, result["traces"], RESULT2_XLSX)
+    table_paths = export_specified_day_tables(prices, result["traces"])
+    print("wrote", dest, flush=True)
+    for path in table_paths:
+        print("wrote", path, flush=True)
+    print("NEW FROZEN total_cost =", repr(summary["total_cost"]), flush=True)
+    print("superseded D_pv7d_adaptive =", repr(FROZEN_ADAPTIVE_FULL_YEAR_COST), flush=True)
+    print("vs C_pv7d_q82 =", summary["total_cost"] - FROZEN_C_Q82_FULL_YEAR_COST, flush=True)
 
 
 def run_opt(args) -> None:
@@ -1100,6 +1280,22 @@ def _export_result2_adaptive(prices: pd.DataFrame, year: dict, selected: dict, m
     print(json.dumps(summary, ensure_ascii=False), flush=True)
 
 
+def _export_result2_netrho(prices: pd.DataFrame, year: dict, selected: dict) -> None:
+    dates = year["dates"]
+    end_idx = int(np.where(pd.to_datetime(dates) == pd.Timestamp(OFFICIAL_END))[0][0])
+    point = load_point_bank(prices, year, 0, end_idx)
+    check_length(point)
+    print("replay official net-rho policy", selected["name"], "with slot traces", flush=True)
+    result, summary = _replay_official_netrho(prices, year, point, collect_traces=True)
+    _assert_matches_frozen(summary)
+    dest = export_result2(prices, result["traces"], RESULT2_XLSX)
+    table_paths = export_specified_day_tables(prices, result["traces"])
+    print("wrote", dest, flush=True)
+    for path in table_paths:
+        print("wrote", path, flush=True)
+    print(json.dumps(summary, ensure_ascii=False), flush=True)
+
+
 def run_export_result2() -> None:
     copy_raw_inputs()
     prices = load_prices()
@@ -1112,6 +1308,9 @@ def run_export_result2() -> None:
     margin = selected.get("margin") or {"mode": "fixed"}
     if margin.get("mode") == "adaptive":
         _export_result2_adaptive(prices, year, selected, margin)
+        return
+    if margin.get("mode") == "net_rho":
+        _export_result2_netrho(prices, year, selected)
         return
     dates = year["dates"]
     end_idx = int(np.where(pd.to_datetime(dates) == pd.Timestamp(OFFICIAL_END))[0][0])
@@ -1169,8 +1368,12 @@ def main() -> None:
     parser.add_argument("--adaptive-tune", action="store_true")
     parser.add_argument("--adaptive-full", action="store_true")
     parser.add_argument("--adopt-adaptive", action="store_true")
+    parser.add_argument("--adopt-netrho", action="store_true")
     parser.add_argument("--refresh-bank", action="store_true")
     args = parser.parse_args()
+    if args.adopt_netrho:
+        run_adopt_netrho(args)
+        return
     if args.adopt_adaptive:
         run_adopt_adaptive(args)
         return

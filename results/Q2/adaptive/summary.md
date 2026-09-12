@@ -1,5 +1,8 @@
 # Q2 逐日自适应保守裕度：调参、样本外验证与门禁
 
+> **已废弃，不是正式答案。** 2026-09-12 起正式策略为 `E_pv7d_netrho`（全年 13695403.61 元）。
+> 本文件保留为方法学对照：嵌套自适应规则看过 7–12 月。归档 `results/Q2/opt/full_year_summary_D_pv7d_adaptive.json`。
+
 复现命令（`code/Q2/`）：
 
 ```
@@ -8,11 +11,11 @@ python run_q2.py --adaptive-full          # 冻结参数后跑全年，出门禁
 python adaptive_oos_sweep.py              # 样本内胜出者的样本外复查
 python adaptive_split_robustness.py       # 嵌套切分位置的稳健性
 python plot_adaptive.py                   # 自指反馈检查与时间序列图
-python run_q2.py --adopt-adaptive         # 队员确认后提升为正式策略并重导 result2
+python run_q2.py --adopt-adaptive         # 已拒绝：正式策略改为 E_pv7d_netrho
 ```
 
-**结论提要**：已采纳为正式策略 `D_pv7d_adaptive`，全年 13697499.17 元（较固定 0.8 省 67668.41 元，0.49%）。
-第 6 节列出采纳动作，第 2 节和第 4 节列出必须在论文中披露的方法学瑕疵与稳健性边界。
+**结论提要（历史）**：曾采纳为 `D_pv7d_adaptive`，全年 13697499.17 元。2026-09-12 起废弃。
+第 6 节列出当时的采纳动作，第 2 节和第 4 节列出必须在论文中披露的方法学瑕疵与稳健性边界。
 
 ## 1. 方法
 

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "R_jan_exp",
+    "alpha": 0.8,
+    "rho": 0.625,
+    "terminal": 2400.0,
+    "window": null,
+    "jan_score": 926559.800230353
+  },
+  {
+    "id": "R_jan_w7",
+    "alpha": 0.8,
+    "rho": 0.625,
+    "terminal": 2400.0,
+    "window": 7,
+    "jan_score": 905314.6465859201
+  }
+]

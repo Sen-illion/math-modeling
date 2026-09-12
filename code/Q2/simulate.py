@@ -39,12 +39,35 @@ def dispatch_slot_greedy(residual: float, soc_prev: float) -> tuple[float, float
     return charge, discharge, emergency, curtail, soc_next
 
 
+def dispatch_slot_rho(
+    residual: float,
+    soc_prev: float,
+    planned_soc: float,
+    rho: float,
+) -> tuple[float, float, float, float, float]:
+    """Protect a floor between E_min and the planned SOC; leftover deficit is emergency.
+
+    rho=0 recovers greedy discharge to E_min. Emergency never charges storage.
+    """
+    reserve = E_MIN_KWH + float(rho) * (float(planned_soc) - E_MIN_KWH)
+    reserve = min(E_MAX_KWH, max(E_MIN_KWH, reserve))
+    if residual <= 0:
+        return dispatch_slot_greedy(residual, soc_prev)
+    discharge_cap = min(P_MAX_KWH, max(0.0, ETA_DISCHARGE * (soc_prev - reserve)))
+    discharge = min(residual, discharge_cap)
+    emergency = residual - discharge
+    soc_next = _clip_soc(soc_prev - discharge / ETA_DISCHARGE)
+    return 0.0, discharge, emergency, 0.0, soc_next
+
+
 def simulate_day(
     price: np.ndarray,
     load_kwh: np.ndarray,
     pv_kwh: np.ndarray,
     purchase_kwh: np.ndarray,
     soc0: float,
+    planned_soc: np.ndarray | None = None,
+    rho: float = 0.0,
 ) -> dict:
     """Lock planned purchase. Dispatch storage using only the current slot actuals."""
     n = N_INTERVALS
@@ -56,10 +79,20 @@ def simulate_day(
     soc_prev = float(soc0)
     if soc_prev < E_MIN_KWH - ABS_TOL_KWH or soc_prev > E_MAX_KWH + ABS_TOL_KWH:
         raise ValueError(f"actual SOC0 {soc_prev} outside [{E_MIN_KWH}, {E_MAX_KWH}]")
+    use_rho = float(rho) > 0.0 and planned_soc is not None
+    if use_rho and len(planned_soc) != n:
+        raise ValueError("planned_soc length must be 144")
 
     for t in range(n):
         residual = load_kwh[t] - pv_kwh[t] - purchase_kwh[t]
-        charge[t], discharge[t], emergency[t], curtail[t], soc_prev = dispatch_slot_greedy(residual, soc_prev)
+        if use_rho:
+            charge[t], discharge[t], emergency[t], curtail[t], soc_prev = dispatch_slot_rho(
+                residual, soc_prev, float(planned_soc[t]), float(rho)
+            )
+        else:
+            charge[t], discharge[t], emergency[t], curtail[t], soc_prev = dispatch_slot_greedy(
+                residual, soc_prev
+            )
         soc[t] = soc_prev
 
     shortage = load_kwh - pv_kwh - purchase_kwh - discharge + charge + curtail - emergency
@@ -75,7 +108,8 @@ def simulate_day(
         "emergency_cost": float(np.dot(5.0 * price, emergency)),
         "n_emergency_slots": int(np.sum(emergency > ABS_TOL_KWH)),
         "max_unserved_kwh": float(np.max(np.maximum(shortage, 0.0))),
-        "dispatch": "greedy",
+        "dispatch": "rho" if use_rho else "greedy",
+        "rho": float(rho) if use_rho else 0.0,
         "mpc_stride": None,
     }
 
