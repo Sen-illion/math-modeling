@@ -47,8 +47,8 @@ XGB_PARAMS = {
     "verbosity": 0,
 }
 
-# Previous frozen official total (M1, zero p0); only replace result3 if the new winner is cheaper.
-PREVIOUS_OFFICIAL_M1_COST = 13519092.792762008
+# Previous frozen official total (LA + measured p0, 24 h, beta); only replace result3 if cheaper.
+PREVIOUS_OFFICIAL_M1_COST = 13458730.29914341
 BETA_LOCK = 1.0
 BETA_OPEN = 0.2
 LOCK_SLOTS = 36
@@ -67,16 +67,16 @@ BETA_OPEN_GRID = (0.0, 0.2, 0.5, 1.0)
 # Playback SOC reserve. 0.0 keeps the price-blind greedy rule shared with Q2.
 RESERVE_GAMMA = 0.0
 
-# Look-ahead length from the issue clock. 24 reproduces frozen LA (n_horizon=144).
-# 48 means rest of today plus a full next day, capped at 288 slots.
-LOOKAHEAD_HOURS = 24
+# Look-ahead length from the issue clock. 48 = rest of today plus a full next day (capped at 288).
+# 24 reproduces the 2026-09-11 LA freeze (n_horizon=144).
+LOOKAHEAD_HOURS = 48
 
-# Net-load residual quantiles. None keeps the frozen beta-sigma buffer.
-# Non-None replaces beta: load uses q, PV uses 1-q, same sign as Q2 (actual - forecast).
-Q_LOCK = None
-Q_OPEN = None
-Q_EVENING = None
-Q_LOCK_GRID = (0.50, 0.70, 0.80, 0.85, 0.90)
+# Net-load residual quantiles. Load uses q, PV uses 1-q; replaces beta when q_lock is set.
+# None would fall back to beta-sigma. 0.65 is the 2026-09-12 freeze (V-trough on the full year).
+Q_LOCK = 0.65
+Q_OPEN = 0.50
+Q_EVENING = 0.50
+Q_LOCK_GRID = (0.50, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90)
 Q_EVENING_GRID = (0.50, 0.70)
 Q_OPEN_DEFAULT = 0.50
 

@@ -272,7 +272,7 @@ def main() -> int:
         "--lookahead-hours",
         type=int,
         default=LOOKAHEAD_HOURS,
-        help="24 keeps frozen LA; 48 is rest of today plus a full next day",
+        help="24 is the old n_horizon=144; 48 is rest of today plus a full next day",
     )
     parser.add_argument("--q-lock", type=float, default=Q_LOCK)
     parser.add_argument("--q-open", type=float, default=Q_OPEN)
@@ -286,8 +286,12 @@ def main() -> int:
         raise SystemExit("--reserve-gamma changes the playback rule; route it to --out-dir")
     if args.lookahead_hours != LOOKAHEAD_HOURS and not args.out_dir:
         raise SystemExit("--lookahead-hours changes the frozen horizon; route it to --out-dir")
-    if args.q_lock is not None and not args.out_dir:
+    if args.q_lock != Q_LOCK and not args.out_dir:
         raise SystemExit("--q-lock changes the frozen buffer; route it to --out-dir")
+    if args.q_open != Q_OPEN and not args.out_dir:
+        raise SystemExit("--q-open changes the frozen buffer; route it to --out-dir")
+    if args.q_evening != Q_EVENING and not args.out_dir:
+        raise SystemExit("--q-evening changes the frozen buffer; route it to --out-dir")
     RESULT_DIR.mkdir(parents=True, exist_ok=True)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     started = time.perf_counter()

@@ -8,7 +8,7 @@ python code/Q3/run_q3.py --phase official
 python code/Q3/check_result3.py
 ```
 
-`phase1` 跑 1 月预热 + 2 月 1–14 日的 N0/B0/M1/TV/LA/M2/M0L/先知对照。
+`phase1` 跑 1 月预热 + 2 月 1–14 日的 N0/B0/M1/TV/LA/M2/M0L/先知对照（当前默认 48 h + \(q_L=0.65\)）。
 `official` 跑 N0/LA/M0L 的全年正式窗口，取全年总费用最低者导出 `results/Q3/result3.xlsx`。
 `check_result3.py` 是导出端门禁：从 `result3.xlsx` 的单元格和附件 1 电价独立重算，不复用 rolling 代码。
 

@@ -6,7 +6,12 @@
   "emergency_kwh": 0.0022716197941281993,
   "adj_purchase_kwh": 968777.439269,
   "n_days_with_intraday_adjust": 0,
-  "elapsed_s": 3.453969500013045,
+  "delta_plus_kwh": 0.0,
+  "delta_minus_kwh": 0.0,
+  "soc24_median": 1200.0000064444448,
+  "soc24_at_min_days": 14,
+  "emergency_share_20h": 0.5431160251705845,
+  "elapsed_s": 3.54843080000137,
   "leakage_errors": [],
   "gate_errors": []
 }
