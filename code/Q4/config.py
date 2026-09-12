@@ -40,6 +40,7 @@ DIAG_DIR = RESULT_DIR / "diagnostics" / "intraday_price_correction"
 ORACLE_DIAG_DIR = RESULT_DIR / "diagnostics" / "oracle_price"
 ALIGN_DIAG_DIR = RESULT_DIR / "diagnostics" / "align_current_policies"
 RETUNE_DIAG_DIR = RESULT_DIR / "diagnostics" / "retune_q_beta"
+ALIGN_QUANTILE_DIAG_DIR = RESULT_DIR / "diagnostics" / "align_q3_quantile"
 Q2_SELECTED_RULE = REPO_ROOT / "results" / "Q2" / "adaptive" / "selected_rule.json"
 
 Q2_POLICY = {

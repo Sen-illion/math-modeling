@@ -11,7 +11,7 @@
   "soc24_median": 4287.046394203704,
   "soc24_at_min_days": 10,
   "emergency_share_20h": 0.41750313709045267,
-  "elapsed_s": 198.89154029998463,
+  "elapsed_s": 230.5383784000005,
   "leakage_errors": [],
   "gate_errors": [],
   "plan_source": "hat0",

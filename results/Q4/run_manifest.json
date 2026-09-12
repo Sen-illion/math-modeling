@@ -101,7 +101,7 @@
     ],
     "replaced": "C_pv7d_q82"
   },
-  "created_at": "2026-09-11T16:45:53.687379+00:00",
+  "created_at": "2026-09-12T04:29:36.328716+00:00",
   "official_window": {
     "start": "2025-02-01",
     "end": "2025-12-31",
@@ -110,6 +110,11 @@
   "outputs": {},
   "q4_3": {
     "official_policy": "LA",
+    "label": "LA_h48_q65",
+    "lookahead_hours": 48,
+    "q_lock": 0.65,
+    "q_open": 0.5,
+    "q_evening": 0.5,
     "metrics": {
       "M1": {
         "n_days": 334,
@@ -146,13 +151,18 @@
       "official_policy": "LA",
       "LA": {
         "n_days": 334,
-        "total_cost": 14217728.666339306,
-        "plan_only_cost": 13094847.377959726,
-        "emergency_cost": 479604.59541506413,
-        "emergency_kwh": 92795.33233211191,
-        "adj_purchase_kwh": 20566351.219040796,
+        "total_cost": 13987150.028490268,
+        "plan_only_cost": 12985543.605142845,
+        "emergency_cost": 254922.23274252986,
+        "emergency_kwh": 46371.77918111973,
+        "adj_purchase_kwh": 20597894.217115864,
         "n_days_with_intraday_adjust": 334,
-        "elapsed_s": 134.5302217999997,
+        "delta_plus_kwh": 745437.987569187,
+        "delta_minus_kwh": 486270.47237464,
+        "soc24_median": 4287.046394203704,
+        "soc24_at_min_days": 10,
+        "emergency_share_20h": 0.41750313709045267,
+        "elapsed_s": 198.89154029998463,
         "leakage_errors": [],
         "gate_errors": [],
         "plan_source": "hat0",
@@ -162,7 +172,13 @@
         "end_date": "2025-12-31",
         "price_source": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\problem_files\\附件\\附件4.xlsx",
         "policy": "LA",
-        "pv_p0_mode": "measured"
+        "pv_p0_mode": "measured",
+        "beta_lock": 1.0,
+        "beta_open": 0.2,
+        "lookahead_hours": 48,
+        "q_lock": 0.65,
+        "q_open": 0.5,
+        "q_evening": 0.5
       }
     },
     "result_xlsx": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q4\\result4-3.xlsx",
@@ -171,6 +187,6 @@
       "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q4\\q43_table2_specified_days.csv",
       "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q4\\q43_table3_emergency.csv"
     ],
-    "replaced": "M1"
+    "aligned_from": "C:\\Users\\Lenovo\\Desktop\\国赛-integrate\\results\\Q4\\diagnostics\\align_q3_quantile"
   }
 }

@@ -21,6 +21,7 @@ if str(CODE_DIR) not in sys.path:
     sys.path.append(str(CODE_DIR))
 
 from pv_forecast import causal_sigma
+from quantile import QuantileBank
 from rolling import POLICIES, run_day, settlement
 from run_q3 import _day_index, load_bundle
 from simulate import validate_actual as q3_validate_actual
@@ -99,6 +100,13 @@ def _window_slice(daily: pd.DataFrame, start: str, end: str) -> pd.DataFrame:
     return daily.loc[mask]
 
 
+_UNSET = object()
+
+
+def _policy_q(value) -> float | None:
+    return None if value is None else float(value)
+
+
 def run_policy_q43(
     name: str,
     end_stamp: str,
@@ -108,6 +116,11 @@ def run_policy_q43(
     policy=None,
     beta_lock: float | None = None,
     beta_open: float | None = None,
+    lookahead_hours: int | None = None,
+    q_lock=_UNSET,
+    q_open=_UNSET,
+    q_evening=_UNSET,
+    quantile_bank=None,
 ) -> dict:
     if bundle is None:
         bundle = load_bundle(write=False)
@@ -127,12 +140,23 @@ def run_policy_q43(
     actual = bank["actual"]
     if policy is None:
         policy = POLICIES[name]
-    if beta_lock is not None or beta_open is not None:
-        policy = replace(
-            policy,
-            beta_lock=float(policy.beta_lock if beta_lock is None else beta_lock),
-            beta_open=float(policy.beta_open if beta_open is None else beta_open),
-        )
+    updates = {}
+    if beta_lock is not None:
+        updates["beta_lock"] = float(beta_lock)
+    if beta_open is not None:
+        updates["beta_open"] = float(beta_open)
+    if lookahead_hours is not None:
+        updates["lookahead_hours"] = int(lookahead_hours)
+    if q_lock is not _UNSET:
+        updates["q_lock"] = _policy_q(q_lock)
+    if q_open is not _UNSET:
+        updates["q_open"] = _policy_q(q_open)
+    if q_evening is not _UNSET:
+        updates["q_evening"] = _policy_q(q_evening)
+    if updates:
+        policy = replace(policy, **updates)
+    if policy.q_lock is not None and quantile_bank is None:
+        quantile_bank = QuantileBank.build(bundle)
 
     def sigma_fn(day: int):
         return causal_sigma(interp, aligned, day)
@@ -156,6 +180,7 @@ def run_policy_q43(
             sigma_fn(day),
             soc,
             policy,
+            quantile_bank=quantile_bank,
         )
         rec["day"] = day
         rec["date"] = str(pd.Timestamp(dates.iloc[day]).date())
@@ -165,7 +190,14 @@ def run_policy_q43(
         soc_track[day + 1] = soc
     _rebill(records, actual)
     official = [r for r in records if r["official"]]
-    leak = leakage_errors(records, load_kwh, dates, typical)
+    leak = leakage_errors(
+        records,
+        load_kwh,
+        dates,
+        typical,
+        quantile_bank=quantile_bank,
+        pv_kwh=pv_kwh,
+    )
     if plan_source == "hat0":
         leak.extend(_price_leakage(official, hat0, actual))
     gate = []
@@ -205,6 +237,10 @@ def run_policy_q43(
             "pv_p0_mode": PV_P0_MODE,
             "beta_lock": float(policy.beta_lock),
             "beta_open": float(policy.beta_open),
+            "lookahead_hours": int(policy.lookahead_hours),
+            "q_lock": _policy_q(policy.q_lock),
+            "q_open": _policy_q(policy.q_open),
+            "q_evening": _policy_q(policy.q_evening),
         }
     )
     expected = _n_official_days(end_stamp)
@@ -251,6 +287,8 @@ def sweep_q43_buffers(out_dir: Path | None = None) -> pd.DataFrame:
                 bank=bank,
                 beta_lock=float(beta_lock),
                 beta_open=float(beta_open),
+                lookahead_hours=24,
+                q_lock=None,
             )
             daily = payload["daily"]
             daily_parts.append(
@@ -292,6 +330,11 @@ def main() -> None:
     parser.add_argument("--end-date", default=None)
     parser.add_argument("--beta-lock", type=float, default=None)
     parser.add_argument("--beta-open", type=float, default=None)
+    parser.add_argument("--lookahead-hours", type=int, default=None)
+    parser.add_argument("--q-lock", type=float, default=None)
+    parser.add_argument("--q-open", type=float, default=None)
+    parser.add_argument("--q-evening", type=float, default=None)
+    parser.add_argument("--disable-quantile", action="store_true")
     parser.add_argument("--sweep-buffers", action="store_true")
     args = parser.parse_args()
     if args.sweep_buffers:
@@ -321,12 +364,24 @@ def main() -> None:
     winner_name = None
     for name in policy_names:
         print("running", name, args.plan_source, "through", end_stamp, flush=True)
+        q_kwargs = {}
+        if args.disable_quantile:
+            q_kwargs["q_lock"] = None
+        else:
+            if args.q_lock is not None:
+                q_kwargs["q_lock"] = args.q_lock
+            if args.q_open is not None:
+                q_kwargs["q_open"] = args.q_open
+            if args.q_evening is not None:
+                q_kwargs["q_evening"] = args.q_evening
         payload = run_policy_q43(
             name,
             end_stamp,
             plan_source=args.plan_source,
             beta_lock=args.beta_lock,
             beta_open=args.beta_open,
+            lookahead_hours=args.lookahead_hours,
+            **q_kwargs,
         )
         metrics[name] = payload["summary"]
         (out_dir / f"{stem_prefix}{name}{stem_suffix}_summary.json").write_text(
