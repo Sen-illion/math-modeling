@@ -60,6 +60,37 @@ def apply_morning_ratio(forecast_kw: np.ndarray, actual_today_kw: np.ndarray, st
     return out
 
 
+def apply_upside_nowcast(
+    horizon_kw: np.ndarray,
+    actual_today_kw: np.ndarray,
+    fc0_today_kw: np.ndarray,
+    start_slot: int,
+    n_today_horizon: int,
+    lookback_slots: int = 18,
+    half_life_hours: float = 6.0,
+) -> np.ndarray:
+    """Add a decaying lift when the last 3 h ran above the 0:00 point forecast.
+
+    Downward residuals are ignored. Tomorrow slots in a 48 h horizon are unchanged.
+    """
+    out = np.asarray(horizon_kw, dtype=float).copy()
+    if start_slot <= 0:
+        return out
+    a0 = max(0, start_slot - int(lookback_slots))
+    resid = np.asarray(actual_today_kw[a0:start_slot], dtype=float) - np.asarray(
+        fc0_today_kw[a0:start_slot], dtype=float
+    )
+    if resid.size == 0:
+        return out
+    delta = float(np.mean(resid))
+    if delta <= 0.0:
+        return out
+    n_today = min(int(n_today_horizon), len(out))
+    tau_h = np.arange(n_today, dtype=float) / 6.0
+    out[:n_today] = np.maximum(0.0, out[:n_today] + delta * (0.5 ** (tau_h / half_life_hours)))
+    return out
+
+
 def tomorrow_forecast_kw(
     load_kw: np.ndarray,
     dates,
@@ -89,15 +120,22 @@ def horizon_load_kw(
     start_slot: int,
     n_horizon: int,
     actual_today_kw: np.ndarray | None,
+    upside_nowcast: bool = False,
 ) -> np.ndarray:
     today = forecast_day_kw(load_kw, day, dates, typical_kw)
+    fc0 = today.copy()
     if actual_today_kw is not None and start_slot > 0:
         today = apply_morning_ratio(today, actual_today_kw, start_slot)
     head = today[start_slot:]
     if n_horizon <= len(head):
-        return head[:n_horizon].copy()
-    tomorrow = tomorrow_forecast_kw(load_kw, dates, typical_kw, day)
-    wrapped = np.concatenate([head, tomorrow])
-    if len(wrapped) < n_horizon:
-        raise ValueError("load horizon shorter than requested")
-    return wrapped[:n_horizon]
+        out = head[:n_horizon].copy()
+    else:
+        tomorrow = tomorrow_forecast_kw(load_kw, dates, typical_kw, day)
+        wrapped = np.concatenate([head, tomorrow])
+        if len(wrapped) < n_horizon:
+            raise ValueError("load horizon shorter than requested")
+        out = wrapped[:n_horizon]
+    if upside_nowcast and actual_today_kw is not None and start_slot > 0:
+        n_today_h = min(N_INTERVALS - start_slot, n_horizon)
+        out = apply_upside_nowcast(out, actual_today_kw, fc0, start_slot, n_today_h)
+    return out

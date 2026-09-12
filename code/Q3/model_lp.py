@@ -28,6 +28,8 @@ def solve_rolling_lp(
     lock_to_plan: bool = False,
     terminal_lambda: float = TERMINAL_LAMBDA,
     e_ref: float = E_REF_KWH,
+    add_only: bool = False,
+    hard_terminal: bool = False,
 ) -> dict:
     n = len(price)
     if not (len(load_kwh) == n and len(pv_kwh) == n):
@@ -48,7 +50,7 @@ def solve_rolling_lp(
     v = pulp.LpVariable("term_neg", lowBound=0)
 
     eps = 1e-7
-    obj = terminal_lambda * (u + v)
+    obj = 0 if hard_terminal else terminal_lambda * (u + v)
     for t in range(n):
         obj += 5.0 * price[t] * gem[t] + eps * (c[t] + d[t])
         if t >= n_today:
@@ -64,6 +66,10 @@ def solve_rolling_lp(
             obj += price[t] * float(g_plan_today[t])
             if lock_to_plan:
                 prob += g[t] == float(g_plan_today[t])
+            elif add_only:
+                dp = pulp.LpVariable(f"dp_{t}", lowBound=0)
+                obj += 1.5 * price[t] * dp
+                prob += g[t] == float(g_plan_today[t]) + dp
             else:
                 dp = pulp.LpVariable(f"dp_{t}", lowBound=0)
                 dm = pulp.LpVariable(f"dm_{t}", lowBound=0)
@@ -76,7 +82,10 @@ def solve_rolling_lp(
         prev = soc0 if t == 0 else e[t - 1]
         prob += g[t] + pv_kwh[t] + d[t] + gem[t] == load_kwh[t] + c[t] + w[t]
         prob += e[t] == prev + ETA_CHARGE * c[t] - d[t] / ETA_DISCHARGE
-    prob += e[n_today - 1] - e_ref == u - v
+    if hard_terminal:
+        prob += e[n_today - 1] == float(e_ref)
+    else:
+        prob += e[n_today - 1] - e_ref == u - v
 
     status = prob.solve(pulp.PULP_CBC_CMD(msg=False, timeLimit=SOLVER_TIME_LIMIT_S))
     status_name = pulp.LpStatus[status]

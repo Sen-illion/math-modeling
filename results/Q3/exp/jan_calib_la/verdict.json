@@ -1,0 +1,14 @@
+{
+  "rule": "choose q_lock by Jan 15-31 cash + nu*(6000-soc_end); Feb-Dec confirmation only",
+  "nu": 0.41255555555555556,
+  "selected_q_lock": 0.6,
+  "q_open": 0.5,
+  "q_evening": 0.5,
+  "lookahead_hours": 48,
+  "jan_score": 869919.8789416603,
+  "full_cost": 13274667.53537518,
+  "delta_vs_frozen_q065": 10756.546270152554,
+  "full_emergency_kwh": 58355.20229992268,
+  "delta_em_kwh": 18676.548418336155,
+  "matches_freeze": false
+}

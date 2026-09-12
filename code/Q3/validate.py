@@ -20,7 +20,7 @@ from config import (
 )
 from load_forecast import forecast_day_kw, tomorrow_forecast_kw
 from pv_forecast import tomorrow_pv_kw
-from quantile import q_vector
+from quantile import q_lock_at, q_vector
 from simulate import validate_actual
 
 
@@ -115,12 +115,18 @@ def leakage_errors(
                     q_vec = q_vector(
                         n_horizon,
                         n_today,
-                        float(rec["q_lock"]),
+                        q_lock_at(rec["q_lock"], hour),
                         float(rec.get("q_open") if rec.get("q_open") is not None else 0.5),
                         float(rec.get("q_evening") if rec.get("q_evening") is not None else 0.5),
                         LOCK_SLOTS,
                     )
-                    expected, _pv = quantile_bank.offsets(day, iss, n_horizon, q_vec)
+                    expected, _pv = quantile_bank.offsets(
+                        day,
+                        iss,
+                        n_horizon,
+                        q_vec,
+                        window=rec.get("resid_window"),
+                    )
                     if not np.allclose(stored, expected, atol=1e-8, rtol=0):
                         errors.append(f"day {day} h={hour} quantile offset is not the causal bank")
     if n_days < 0:

@@ -72,8 +72,9 @@ RESERVE_GAMMA = 0.0
 LOOKAHEAD_HOURS = 48
 
 # Net-load residual quantiles. Load uses q, PV uses 1-q; replaces beta when q_lock is set.
-# None would fall back to beta-sigma. 0.65 is the 2026-09-12 freeze (V-trough on the full year).
-Q_LOCK = 0.65
+# None would fall back to beta-sigma. 0.60 is the 2026-09-12 freeze: January 15-31
+# cash+inventory minimum, Feb-Dec confirmation only (not the full-year V-trough 0.65).
+Q_LOCK = 0.60
 Q_OPEN = 0.50
 Q_EVENING = 0.50
 Q_LOCK_GRID = (0.50, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90)

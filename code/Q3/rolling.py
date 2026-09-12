@@ -15,6 +15,7 @@ from config import (
     E0_JAN1_KWH,
     E_MAX_KWH,
     E_MIN_KWH,
+    E_REF_KWH,
     ETA_DISCHARGE,
     ISSUE_HOURS,
     LOCK_SLOTS,
@@ -29,7 +30,7 @@ from config import (
 from load_forecast import forecast_day_kw, horizon_load_kw, tomorrow_forecast_kw
 from model_lp import solve_rolling_lp
 from pv_forecast import conservative_pv_kwh, horizon_pv_kw, horizon_sigma, tomorrow_pv_kw, tomorrow_pv_kw
-from quantile import apply_net_quantile, q_vector
+from quantile import apply_net_quantile, q_lock_at, q_vector
 from simulate import simulate_range, simulate_day, validate_actual
 
 
@@ -49,9 +50,16 @@ class Policy:
     lock_slots: int = LOCK_SLOTS
     reserve_gamma: float = RESERVE_GAMMA
     lookahead_hours: int = LOOKAHEAD_HOURS
-    q_lock: float | None = Q_LOCK
+    q_lock: float | tuple[float, ...] | None = Q_LOCK
     q_open: float | None = Q_OPEN
     q_evening: float | None = Q_EVENING
+    load_nowcast: bool = False
+    add_only: bool = False
+    block_commit: bool = False
+    proxy_gate: bool = False
+    resid_window: int | None = None
+    e_ref: float = E_REF_KWH
+    hard_terminal: bool = False
 
 
 POLICIES = {
@@ -157,6 +165,7 @@ def run_day(
             start_slot,
             n_horizon,
             load_kw_today if hour > 0 else None,
+            upside_nowcast=policy.load_nowcast,
         )
         pv_point = horizon_pv_kw(interp_kw, day, iss, n_horizon, actual_kw=pv_kwh / DT_HOURS)
         use_quantile = policy.q_lock is not None
@@ -165,15 +174,18 @@ def run_day(
         if use_quantile:
             if quantile_bank is None:
                 raise RuntimeError("q_lock set without a residual bank")
+            q_lock_hour = q_lock_at(policy.q_lock, hour)
             q_vec = q_vector(
                 n_horizon,
                 n_today,
-                float(policy.q_lock),
+                q_lock_hour,
                 float(policy.q_open if policy.q_open is not None else 0.5),
                 float(policy.q_evening if policy.q_evening is not None else 0.5),
                 policy.lock_slots,
             )
-            q_off_load, q_off_pv = quantile_bank.offsets(day, iss, n_horizon, q_vec)
+            q_off_load, q_off_pv = quantile_bank.offsets(
+                day, iss, n_horizon, q_vec, window=policy.resid_window
+            )
             load_kw_h, pv_point = apply_net_quantile(load_kw_h, pv_point, q_off_load, q_off_pv)
         if (not use_quantile) and policy.use_buffer:
             pv_h = conservative_pv_kwh(
@@ -193,6 +205,21 @@ def run_day(
         pv_l1 = 0.0
         chosen = None
 
+        def _solve(lock: bool) -> dict:
+            return solve_rolling_lp(
+                price_h,
+                load_kw_h * DT_HOURS,
+                pv_h,
+                soc,
+                n_today=n_today,
+                g_plan_today=plan_slice,
+                lock_to_plan=lock,
+                terminal_lambda=term,
+                e_ref=policy.e_ref,
+                add_only=bool(policy.add_only and plan_slice is not None and not lock),
+                hard_terminal=policy.hard_terminal,
+            )
+
         if hour > 0 and policy.no_adjust:
             take_free = False
         elif hour > 0 and hour not in policy.adjust_hours:
@@ -204,58 +231,33 @@ def run_day(
             if pv_new_e >= pv0_e - 1e-6:
                 take_free = False
             else:
-                free = solve_rolling_lp(
-                    price_h,
-                    load_kw_h * DT_HOURS,
-                    pv_h,
-                    soc,
-                    n_today=n_today,
-                    g_plan_today=plan_slice,
-                    lock_to_plan=False,
-                    terminal_lambda=term,
-                )
-                chosen = free
+                chosen = _solve(False)
         elif hour > 0 and policy.selective:
             pv0 = interp_kw[day, 0, start_slot : start_slot + n_today]
             pv_l1 = float(np.abs(interp_kw[day, iss, :n_today] - pv0).sum() * DT_HOURS)
             if pv_l1 < ADJ_PV_L1_KWH:
                 take_free = False
             else:
-                free = solve_rolling_lp(
-                    price_h,
-                    load_kw_h * DT_HOURS,
-                    pv_h,
-                    soc,
-                    n_today=n_today,
-                    g_plan_today=plan_slice,
-                    lock_to_plan=False,
-                    terminal_lambda=term,
-                )
-                locked = solve_rolling_lp(
-                    price_h,
-                    load_kw_h * DT_HOURS,
-                    pv_h,
-                    soc,
-                    n_today=n_today,
-                    g_plan_today=plan_slice,
-                    lock_to_plan=True,
-                    terminal_lambda=term,
-                )
+                free = _solve(False)
+                locked = _solve(True)
                 keep_obj = locked["objective"]
                 take_free = free["objective"] < (1.0 - SELECT_EPS) * locked["objective"]
                 chosen = free if take_free else locked
-        else:
-            free = solve_rolling_lp(
-                price_h,
-                load_kw_h * DT_HOURS,
-                pv_h,
-                soc,
-                n_today=n_today,
-                g_plan_today=plan_slice,
-                lock_to_plan=False,
-                terminal_lambda=term,
+        elif hour > 0 and policy.proxy_gate:
+            free = _solve(False)
+            locked = _solve(True)
+            keep_obj = locked["objective"]
+            commit_n = min(policy.lock_slots if policy.block_commit else n_today, n_today)
+            add_kwh = float(
+                np.maximum(
+                    free["today_purchase_kwh"][:commit_n] - np.asarray(plan_slice[:commit_n], dtype=float),
+                    0.0,
+                ).sum()
             )
-            chosen = free
+            take_free = free["objective"] < keep_obj - 1e-9 and add_kwh > 1e-3
+            chosen = free if take_free else locked
+        else:
+            chosen = _solve(False)
 
         if chosen is not None:
             soc_plan[start_slot:] = chosen["soc_end_kwh"][:n_today]
@@ -290,7 +292,8 @@ def run_day(
                 )
                 break
         elif take_free:
-            g_adj[start_slot:] = chosen["today_purchase_kwh"]
+            commit_n = min(policy.lock_slots if policy.block_commit else n_today, n_today)
+            g_adj[start_slot : start_slot + commit_n] = chosen["today_purchase_kwh"][:commit_n]
 
         next_slot = N_INTERVALS if hour == ISSUE_HOURS[-1] else (hour + 6) * 6
         reserve_rest = plan_tracking_reserve(soc_plan[start_slot:next_slot], policy.reserve_gamma)
@@ -378,6 +381,7 @@ def run_day(
         "q_lock": policy.q_lock,
         "q_open": policy.q_open,
         "q_evening": policy.q_evening,
+        "resid_window": policy.resid_window,
         "lookahead_hours": policy.lookahead_hours,
     }
 
@@ -429,9 +433,7 @@ def run_span(
 ) -> dict:
     n_days = end_day - start_day
     days = list(range(warmup_start, end_day))
-    soc = E0_JAN1_KWH if warmup_start == 0 else None
-    if soc is None:
-        raise ValueError("warmup must start at day 0 to use E0=6000")
+    soc = E0_JAN1_KWH
 
     records = []
     soc_track = {warmup_start: soc}

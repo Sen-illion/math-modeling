@@ -16,6 +16,15 @@ from load_forecast import horizon_load_kw, tomorrow_forecast_kw
 from pv_forecast import aligned_actual_pv, tomorrow_pv_kw
 
 
+def q_lock_at(q_lock, hour: int) -> float:
+    """Scalar lock quantile for one issue clock. A 4-tuple is (0, 6, 12, 18)."""
+    if isinstance(q_lock, (list, tuple, np.ndarray)):
+        if len(q_lock) != len(ISSUE_HOURS):
+            raise ValueError("q_lock sequence must have one value per issue hour")
+        return float(q_lock[ISSUE_HOURS.index(hour)])
+    return float(q_lock)
+
+
 def q_vector(
     n_horizon: int,
     n_today: int,
@@ -79,7 +88,7 @@ def _aligned_actual_load(actual_kw: np.ndarray) -> np.ndarray:
     return aligned
 
 
-def _load_point_24(load_kw: np.ndarray, dates, typical: np.ndarray) -> np.ndarray:
+def _load_point_24(load_kw: np.ndarray, dates, typical: np.ndarray, upside_nowcast: bool = False) -> np.ndarray:
     n_days = load_kw.shape[0]
     out = np.zeros((n_days, len(ISSUE_HOURS), N_INTERVALS))
     for d in range(n_days):
@@ -94,6 +103,7 @@ def _load_point_24(load_kw: np.ndarray, dates, typical: np.ndarray) -> np.ndarra
                 start,
                 N_INTERVALS,
                 actual_today if hour > 0 else None,
+                upside_nowcast=upside_nowcast,
             )
     return out
 
@@ -121,7 +131,7 @@ class QuantileBank:
         self.pv_resid_extra = pv_resid_extra
 
     @classmethod
-    def build(cls, bundle: dict) -> "QuantileBank":
+    def build(cls, bundle: dict, upside_nowcast: bool = False) -> "QuantileBank":
         load_kw = np.asarray(bundle["year"]["load_kwh"], dtype=float) / DT_HOURS
         dates = bundle["year"]["dates"]
         typical = bundle["prices"]["typical_load_kw"].to_numpy(dtype=float)
@@ -129,7 +139,7 @@ class QuantileBank:
         pv_actual = np.asarray(bundle["year"]["pv_kw"], dtype=float)
         n_days = load_kw.shape[0]
 
-        load_hat = _load_point_24(load_kw, dates, typical)
+        load_hat = _load_point_24(load_kw, dates, typical, upside_nowcast=upside_nowcast)
         load_act = _aligned_actual_load(load_kw)
         pv_act = aligned_actual_pv(pv_actual, interp)
         load_resid24 = load_act - load_hat
@@ -158,6 +168,7 @@ class QuantileBank:
         iss: int,
         n_horizon: int,
         q_vec: np.ndarray,
+        window: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         q_vec = np.asarray(q_vec, dtype=float)
         if q_vec.size != n_horizon:
@@ -165,15 +176,18 @@ class QuantileBank:
         load_off = np.zeros(n_horizon)
         pv_off = np.zeros(n_horizon)
         n24 = min(n_horizon, N_INTERVALS)
-        if day > 0:
-            load_off[:n24] = slot_quantile(self.load_resid24[:day, iss, :n24], q_vec[:n24])
-            pv_off[:n24] = slot_quantile(self.pv_resid24[:day, iss, :n24], 1.0 - q_vec[:n24])
+        start = 0 if window is None else max(0, day - int(window))
+        if day > start:
+            load_off[:n24] = slot_quantile(self.load_resid24[start:day, iss, :n24], q_vec[:n24])
+            pv_off[:n24] = slot_quantile(self.pv_resid24[start:day, iss, :n24], 1.0 - q_vec[:n24])
         extra_n = n_horizon - n24
-        if extra_n > 0 and day > 1:
+        extra_end = max(0, day - 1)
+        extra_start = 0 if window is None else max(0, extra_end - int(window))
+        if extra_n > 0 and extra_end > extra_start:
             load_off[n24:] = slot_quantile(
-                self.load_resid_extra[: day - 1, iss, :extra_n], q_vec[n24:]
+                self.load_resid_extra[extra_start:extra_end, iss, :extra_n], q_vec[n24:]
             )
             pv_off[n24:] = slot_quantile(
-                self.pv_resid_extra[: day - 1, iss, :extra_n], 1.0 - q_vec[n24:]
+                self.pv_resid_extra[extra_start:extra_end, iss, :extra_n], 1.0 - q_vec[n24:]
             )
         return load_off, pv_off

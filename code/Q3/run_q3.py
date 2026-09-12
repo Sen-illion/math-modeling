@@ -150,7 +150,10 @@ def run_phase(
     if quantile_bank is None and any(
         n != "oracle" and POLICIES[n].q_lock is not None for n in names
     ):
-        quantile_bank = QuantileBank.build(bundle)
+        nowcast = any(
+            n != "oracle" and getattr(POLICIES[n], "load_nowcast", False) for n in names
+        )
+        quantile_bank = QuantileBank.build(bundle, upside_nowcast=nowcast)
     for name in names:
         t0 = time.perf_counter()
         if name == "oracle":
@@ -277,6 +280,11 @@ def main() -> int:
     parser.add_argument("--q-lock", type=float, default=Q_LOCK)
     parser.add_argument("--q-open", type=float, default=Q_OPEN)
     parser.add_argument("--q-evening", type=float, default=Q_EVENING)
+    parser.add_argument(
+        "--q-lock-by-issue",
+        default=None,
+        help="four lock quantiles for 0:00,6:00,12:00,18:00; overrides --q-lock",
+    )
     args = parser.parse_args()
     if args.out_dir and not args.no_export:
         raise SystemExit("--out-dir is for experiments; pass --no-export as well")
@@ -292,6 +300,14 @@ def main() -> int:
         raise SystemExit("--q-open changes the frozen buffer; route it to --out-dir")
     if args.q_evening != Q_EVENING and not args.out_dir:
         raise SystemExit("--q-evening changes the frozen buffer; route it to --out-dir")
+    q_lock_by_issue = None
+    if args.q_lock_by_issue:
+        parts = [float(x) for x in args.q_lock_by_issue.split(",")]
+        if len(parts) != 4:
+            raise SystemExit("--q-lock-by-issue needs four values for 0:00,6:00,12:00,18:00")
+        q_lock_by_issue = tuple(parts)
+        if not args.out_dir:
+            raise SystemExit("--q-lock-by-issue changes the frozen buffer; route it to --out-dir")
     RESULT_DIR.mkdir(parents=True, exist_ok=True)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     started = time.perf_counter()
@@ -306,8 +322,8 @@ def main() -> int:
             updates["reserve_gamma"] = args.reserve_gamma
         if args.lookahead_hours != LOOKAHEAD_HOURS:
             updates["lookahead_hours"] = args.lookahead_hours
-        if args.q_lock is not None:
-            updates["q_lock"] = args.q_lock
+        if args.q_lock is not None or q_lock_by_issue is not None:
+            updates["q_lock"] = q_lock_by_issue if q_lock_by_issue is not None else args.q_lock
             updates["q_open"] = args.q_open if args.q_open is not None else 0.5
             updates["q_evening"] = args.q_evening if args.q_evening is not None else 0.5
         if updates:
@@ -349,7 +365,7 @@ def main() -> int:
         "pv_p0_mode": args.pv_p0,
         "reserve_gamma": args.reserve_gamma,
         "lookahead_hours": args.lookahead_hours,
-        "q_lock": args.q_lock,
+        "q_lock": list(q_lock_by_issue) if q_lock_by_issue is not None else args.q_lock,
         "q_open": args.q_open,
         "q_evening": args.q_evening,
     }
