@@ -41,6 +41,7 @@ ORACLE_DIAG_DIR = RESULT_DIR / "diagnostics" / "oracle_price"
 ALIGN_DIAG_DIR = RESULT_DIR / "diagnostics" / "align_current_policies"
 RETUNE_DIAG_DIR = RESULT_DIR / "diagnostics" / "retune_q_beta"
 ALIGN_QUANTILE_DIAG_DIR = RESULT_DIR / "diagnostics" / "align_q3_quantile"
+ALIGN_OFFICIAL_DIAG_DIR = RESULT_DIR / "diagnostics" / "align_q2q3_official"
 Q2_SELECTED_RULE = REPO_ROOT / "results" / "Q2" / "adaptive" / "selected_rule.json"
 
 Q2_POLICY = {
@@ -56,6 +57,12 @@ Q2_ADAPTIVE_POLICY = {
     "pv_source": "baseline_7d",
     "soc_mu": 0.0,
     "dispatch": "greedy",
+}
+Q2_NETRHO_POLICY = {
+    "name": "E_pv7d_netrho",
+    "pv_source": "baseline_7d",
+    "soc_mu": 0.0,
+    "dispatch": "rho",
 }
 Q3_POLICY = "LA"
 

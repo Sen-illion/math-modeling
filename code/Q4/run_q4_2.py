@@ -20,12 +20,16 @@ if str(CODE_DIR) not in sys.path:
     sys.path.append(str(CODE_DIR))
 
 from adaptive import causal_percentile, net_residual_std, snap_to_ladder  # noqa: E402
+from bank import bias_net_bank  # noqa: E402
 from config import (  # noqa: E402
     ADAPTIVE_WARMUP_DAYS,
     DT_HOURS,
     E0_FEB1_KWH,
     OFFICIAL_END,
+    OFFICIAL_NET_ALPHA,
+    OFFICIAL_RHO,
     OFFICIAL_START,
+    OFFICIAL_TERMINAL_SOC,
     PHASE1_END,
     Q_LADDER,
     Q_WARMUP,
@@ -47,6 +51,7 @@ from Q4.config import (  # noqa: E402
     ORACLE_DIAG_DIR,
     PHASE1_DIR,
     Q2_ADAPTIVE_POLICY,
+    Q2_NETRHO_POLICY,
     Q2_POLICY,
     Q2_SELECTED_RULE,
     RESULT_DIR,
@@ -106,7 +111,14 @@ def prepare_q42(end_stamp: str, margin: str = "adaptive") -> dict:
     end_idx = _day_index(dates, end_stamp)
     load_panel = precompute_panel(year["load_kw"], dates)
     pv_panel = precompute_panel(year["pv_kw"], dates)
-    policy = Q2_ADAPTIVE_POLICY if margin == "adaptive" else Q2_POLICY
+    if margin == "adaptive":
+        policy = Q2_ADAPTIVE_POLICY
+    elif margin == "netrho":
+        policy = Q2_NETRHO_POLICY
+    elif margin == "fixed":
+        policy = Q2_POLICY
+    else:
+        raise ValueError(f"unknown margin {margin}")
     point, forecast_s = collect_forecasts(
         "xgb_expanding",
         prices,
@@ -139,6 +151,9 @@ def prepare_q42(end_stamp: str, margin: str = "adaptive") -> dict:
         }
     elif margin == "fixed":
         biased = apply_bias_forecasts(point, year, Q2_POLICY["q_load"], Q2_POLICY["q_pv"])
+        by_day = {int(row["day"]): row for row in biased}
+    elif margin == "netrho":
+        biased = bias_net_bank(point, year, OFFICIAL_NET_ALPHA)
         by_day = {int(row["day"]): row for row in biased}
     else:
         raise ValueError(f"unknown margin {margin}")
@@ -195,6 +210,18 @@ def run_q4_2(
         k = 0.0
         warmup = q_min
         warmup_days = ADAPTIVE_WARMUP_DAYS
+    elif margin == "netrho":
+        q_min = float(OFFICIAL_NET_ALPHA)
+        k = float(OFFICIAL_RHO)
+        warmup = q_min
+        warmup_days = ADAPTIVE_WARMUP_DAYS
+        rule = {
+            "mode": "net_rho",
+            "alpha": float(OFFICIAL_NET_ALPHA),
+            "rho": float(OFFICIAL_RHO),
+            "terminal_soc": float(OFFICIAL_TERMINAL_SOC),
+            "label": "E_pv7d_netrho",
+        }
     else:
         raise ValueError(f"unknown margin {margin}")
 
@@ -238,6 +265,12 @@ def run_q4_2(
             pred = banks[bank_key][day]
             if int(pred["day"]) != day:
                 raise RuntimeError(f"bank index mismatch at day {day}")
+        elif margin == "netrho":
+            pred = by_day[day]
+            q_load = float(OFFICIAL_NET_ALPHA)
+            source = "netrho"
+            value = float("nan")
+            z = None
         else:
             pred = by_day[day]
             q_load = float(Q2_POLICY["q_load"])
@@ -256,6 +289,7 @@ def run_q4_2(
             soc,
             terminal_mode="none",
             soc_mu=float(policy["soc_mu"]),
+            terminal_soc=float(OFFICIAL_TERMINAL_SOC) if margin == "netrho" else None,
         )
         errors.extend(validate_plan(plan, plan_price, load_hat, pv_hat))
         actual = simulate_day(
@@ -264,6 +298,8 @@ def run_q4_2(
             year["pv_kwh"][day],
             plan["purchase_kwh"],
             soc,
+            planned_soc=plan["soc_end_kwh"] if margin == "netrho" else None,
+            rho=float(OFFICIAL_RHO) if margin == "netrho" else 0.0,
         )
         errors.extend(validate_actual(actual, plan["purchase_kwh"], year["load_kwh"][day], year["pv_kwh"][day]))
         rebuilt_plan = float(np.dot(settle_price, plan["purchase_kwh"]))
@@ -289,6 +325,9 @@ def run_q4_2(
                 "emergency_cost": rebuilt_em,
                 "total_cost": rebuilt_plan + rebuilt_em,
                 "curtail_kwh": float(actual["curtail_kwh"].sum()),
+                "net_alpha": float(OFFICIAL_NET_ALPHA) if margin == "netrho" else np.nan,
+                "rho": float(OFFICIAL_RHO) if margin == "netrho" else 0.0,
+                "terminal_soc": float(OFFICIAL_TERMINAL_SOC) if margin == "netrho" else np.nan,
             }
         )
         if collect_traces:
@@ -333,6 +372,9 @@ def run_q4_2(
         "adaptive_rule": rule,
         "q_min": q_min,
         "k": k,
+        "net_alpha": float(OFFICIAL_NET_ALPHA) if margin == "netrho" else None,
+        "rho": float(OFFICIAL_RHO) if margin == "netrho" else None,
+        "terminal_soc": float(OFFICIAL_TERMINAL_SOC) if margin == "netrho" else None,
         "q_counts": {str(k): int(v) for k, v in daily["q_load"].value_counts().sort_index().items()} if len(daily) else {},
     }
     expected = _n_official_days(end_stamp)
@@ -414,7 +456,7 @@ def main() -> None:
     parser.add_argument("--full", action="store_true")
     parser.add_argument("--export", action="store_true")
     parser.add_argument("--plan-source", choices=("hat0", "oracle"), default="hat0")
-    parser.add_argument("--margin", choices=("fixed", "adaptive"), default="fixed")
+    parser.add_argument("--margin", choices=("fixed", "adaptive", "netrho"), default="fixed")
     parser.add_argument("--out-dir", type=Path, default=None)
     parser.add_argument("--dump-payload", type=Path, default=None)
     parser.add_argument("--q-min", type=float, default=None)
@@ -443,7 +485,12 @@ def main() -> None:
     )
     if args.out_dir is not None:
         out_dir = args.out_dir
-        stem = "q42_adaptive" if args.margin == "adaptive" else "q42"
+        if args.margin == "adaptive":
+            stem = "q42_adaptive"
+        elif args.margin == "netrho":
+            stem = "q42_netrho"
+        else:
+            stem = "q42"
     elif args.plan_source == "oracle":
         out_dir = ORACLE_DIAG_DIR
         stem = "q42_oracle"
